@@ -165,6 +165,7 @@ public:
     bool AllowModifyReputation(std::string _score_address, int height);
     bool AllowModifyReputation(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time);
     bool AllowLottery(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time);
+    bool AllowModifyReputationOverComment(std::string _score_address, std::string _comment_address, int height, const CTransactionRef& tx, bool lottery);
 };
 //-----------------------------------------------------
 extern std::unique_ptr<AntiBot> g_antibot;

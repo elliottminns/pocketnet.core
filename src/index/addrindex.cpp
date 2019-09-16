@@ -225,7 +225,7 @@ bool AddrIndex::indexPost(const CTransactionRef& tx, CBlockIndex* pindex)
 // RATINGS
 //-----------------------------------------------------
 bool AddrIndex::indexRating(const CTransactionRef& tx,
-    std::map<std::string, std::pair<int, int>>& userRatings,
+    std::map<std::string, double>& userReputations,
     std::map<std::string, std::pair<int, int>>& postRatings,
     std::map<std::string, int>& postReputations,
     CBlockIndex* pindex)
@@ -244,10 +244,12 @@ bool AddrIndex::indexRating(const CTransactionRef& tx,
     if (!g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, posttxid), postItm).ok()) return false;
     std::string post_address = postItm["address"].As<string>();
 
+
     // Save rating for post in any case
     if (postRatings.find(posttxid) == postRatings.end()) postRatings.insert(std::make_pair(posttxid, std::make_pair(0, 0)));
     postRatings[posttxid].first += scoreVal;
     postRatings[posttxid].second += 1;
+
 
     // Modify reputation for user and post
     std::string _check_score_address = score_address;
@@ -255,50 +257,84 @@ bool AddrIndex::indexRating(const CTransactionRef& tx,
         _check_score_address = post_address;
     }
 
-    bool modify_by_user_reputation = g_antibot->AllowModifyReputation(_check_score_address, pindex->nHeight - 1);
-    bool modify_by_scores_one_to_one_limit = g_antibot->AllowModifyReputation(_check_score_address, post_address, pindex->nHeight - 1, txid, tx->nTime);
+    // USER & POST reputation
+    if (g_antibot->AllowModifyReputation(_check_score_address, post_address, pindex->nHeight - 1, txid, tx->nTime)) {
 
-    // USER reputation
-    if (modify_by_user_reputation && modify_by_scores_one_to_one_limit) {
-        if (userRatings.find(post_address) == userRatings.end()) userRatings.insert(std::make_pair(post_address, std::make_pair(0, 0)));
-        userRatings[post_address].first += scoreVal;
-        userRatings[post_address].second += 1;
-    }
+        // User reputation
+        if (userReputations.find(post_address) == userReputations.end()) userReputations.insert(std::make_pair(post_address, 0));
+        userReputations[post_address] += scoreVal - 3; // Reputation between -2 and 2
 
-    // POST reputation
-    if (modify_by_user_reputation) {
+        // Post reputation
         if (postReputations.find(posttxid) == postReputations.end()) postReputations.insert(std::make_pair(posttxid, 0));
-        // Reputation compute with formula `sum - (cnt * 3)`
-        postReputations[posttxid] += scoreVal - 3;
+        postReputations[posttxid] += scoreVal - 3; // Reputation between -2 and 2
+
     }
 
     return true;
 }
 
-bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, std::pair<int, int>>& userRatings)
+bool AddrIndex::indexCommentRating(const CTransactionRef& tx,
+    std::map<std::string, double>& userReputations,
+    std::map<std::string, std::pair<int, int>>& commentRatings,
+    std::map<std::string, int>& commentReputations,
+    CBlockIndex* pindex)
 {
-    for (auto& ur : userRatings) {
-        int sum = 0;
-        int cnt = 0;
+    std::string txid = tx->GetHash().GetHex();
 
-        // First get existed ratings
-        // Ratings without this connected index
-        g_pocketdb->GetUserRating(ur.first, sum, cnt, pindex->nHeight - 1);
+    // Find this Score in DB for get upvote value
+    Item scoreCommentItm;
+    if (!g_pocketdb->SelectOne(reindexer::Query("CommentScores").Where("txid", CondEq, txid), scoreCommentItm).ok()) return false;
+    std::string score_address = scoreCommentItm["address"].As<string>();
+    std::string commentid = scoreCommentItm["commentid"].As<string>();
+    int scoreVal = scoreCommentItm["value"].As<int>();
 
-        // Increment rating and count
-        sum = sum + ur.second.first;
-        cnt = cnt + ur.second.second;
+    // Find comment for get author address
+    Item commentItm;
+    if (!g_pocketdb->SelectOne(reindexer::Query("Comment").Where("otxid", CondEq, commentid).Where("last", CondEq, true), commentItm).ok()) return false;
+    std::string comment_address = commentItm["address"].As<string>();
+
+
+    // Save rating for comment in any case
+    if (commentRatings.find(commentid) == commentRatings.end()) commentRatings.insert(std::make_pair(commentid, std::make_pair(0, 0)));
+    commentRatings[commentid].first += scoreVal;
+    commentRatings[commentid].second += 1;
+
+
+    // Modify reputation for comment
+    bool allow_modify_reputation = g_antibot->AllowModifyReputationOverComment(score_address, comment_address, pindex->nHeight - 1, tx, false);
+
+    // USER & COMMENT reputation
+    if (allow_modify_reputation) {
+
+        // User reputation
+        if (userReputations.find(comment_address) == userReputations.end()) userReputations.insert(std::make_pair(comment_address, 0));
+        userReputations[comment_address] += scoreVal / 10; // Reputation equals -0.1 or 0.1
+
+        // Comment reputation        
+        if (commentReputations.find(commentid) == commentReputations.end()) commentReputations.insert(std::make_pair(commentid, 0));
+        commentReputations[commentid] += scoreVal / 10; // Reputation equals -0.1 or 0.1
+
+    }
+
+    return true;
+}
+
+bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, double>& userReputations)
+{
+    for (auto& ur : userReputations) {
+
+        double rep = g_pocketdb->GetUserReputation(ur.first, pindex->nHeight - 1);
+        rep += ur.second;
 
         // Create new item with this height - new accumulating rating
         reindexer::Item _itm_rating_new = g_pocketdb->DB()->NewItem("UserRatings");
         _itm_rating_new["address"] = ur.first;
         _itm_rating_new["block"] = pindex->nHeight;
-        _itm_rating_new["scoreSum"] = sum;
-        _itm_rating_new["scoreCnt"] = cnt;
+        _itm_rating_new["reputation"] = rep;
         if (!g_pocketdb->UpsertWithCommit("UserRatings", _itm_rating_new).ok()) return false;
 
-        // Update user rating
-        if (!g_pocketdb->UpdateUserRating(ur.first, sum, cnt)) return false;
+        // Update user reputation
+        if (!g_pocketdb->UpdateUserReputation(ur.first, rep)) return false;
     }
 
     return true;
@@ -339,9 +375,126 @@ bool AddrIndex::computePostsRatings(CBlockIndex* pindex, std::map<std::string, s
 
     return true;
 }
+
+bool AddrIndex::computeCommentRatings(CBlockIndex* pindex, std::map<std::string, std::pair<int, int>>& commentRatings, std::map<std::string, int>& commentReputations)
+{
+    for (auto& pr : commentRatings) {
+        int sum = 0;
+        int cnt = 0;
+        int rep = 0;
+
+        // First get existed ratings
+        // Ratings without this connected index
+        g_pocketdb->GetCommentRating(pr.first, sum, cnt, rep, pindex->nHeight - 1);
+
+        if (commentReputations.find(pr.first) != commentReputations.end()) {
+            rep += commentReputations[pr.first];
+        }
+
+        // Increment rating and count
+        sum += pr.second.first;
+        cnt += pr.second.second;
+
+        // Create new item with this height - new accumulating rating
+        reindexer::Item _itm_rating_new = g_pocketdb->DB()->NewItem("CommentRatings");
+        _itm_rating_new["commentid"] = pr.first;
+        _itm_rating_new["block"] = pindex->nHeight;
+        _itm_rating_new["scoreSum"] = sum;
+        _itm_rating_new["scoreCnt"] = cnt;
+        _itm_rating_new["reputation"] = rep;
+
+        if (!g_pocketdb->UpsertWithCommit("CommentRatings", _itm_rating_new).ok()) return false;
+
+        // Update Comment rating
+        if (!g_pocketdb->UpdateCommentRating(pr.first, sum, cnt, rep)) return false;
+    }
+
+    return true;
+}
 //-----------------------------------------------------
 // PUBLIC
 //-----------------------------------------------------
+bool AddrIndex::IndexBlock(const CBlock& block, CBlockIndex* pindex)
+{
+    // User reputations map for this block
+    // <address, rep>
+    std::map<std::string, double> userReputations;
+
+    // Post ratings map for this block
+    // <posttxid, <sum, cnt>>
+    std::map<std::string, std::pair<int, int>> postRatings;
+    
+    // Post reputations map for this block
+    // <posttxid, rep>
+    std::map<std::string, int> postReputations;
+    
+    // Comment ratings map for this block
+    // <commentid, <sum, cnt>>
+    std::map<std::string, std::pair<int, int>> commentRatings;
+
+    // Comment reputations map for this block
+    // <commentid, rep>
+    std::map<std::string, int> commentReputations;
+
+    for (const auto& tx : block.vtx) {
+        // Indexing UTXOs
+        if (!indexUTXO(tx, pindex)) {
+            LogPrintf("(AddrIndex::IndexBlock) indexUTXO - tx (%s)\n", tx->GetHash().GetHex());
+            return false;
+        }
+
+        // Indexing addresses
+        if (!indexAddress(tx, pindex)) {
+            LogPrintf("(AddrIndex::IndexBlock) indexAddress - tx (%s)\n", tx->GetHash().GetHex());
+            return false;
+        }
+
+        std::string ri_table;
+        if (!GetPocketnetTXType(tx, ri_table)) continue;
+
+        // Indexing ratings
+        if (ri_table == "Scores" && !indexRating(tx, userReputations, postRatings, postReputations, pindex)) {
+            LogPrintf("(AddrIndex::IndexBlock) indexRating - tx (%s)\n", tx->GetHash().GetHex());
+            return false;
+        }
+
+        // Indexing ratings
+        if (ri_table == "CommentScores" && !indexCommentRating(tx, userReputations, commentRatings, commentReputations, pindex)) {
+            LogPrintf("(AddrIndex::IndexBlock) indexCommentRating - tx (%s)\n", tx->GetHash().GetHex());
+            return false;
+        }
+        
+        if (ri_table == "Posts" && !indexPost(tx, pindex)) {
+            LogPrintf("(AddrIndex::IndexBlock) indexPost - tx (%s)\n", tx->GetHash().GetHex());
+            return false;
+        }
+
+        // Indexing tags
+        // TODO (brangr): Temporaly remove tags
+        // if (!indexTags(tx, pindex)) return false;
+    }
+
+    // Save ratings for users
+    if (!computeUsersRatings(pindex, userReputations)) {
+        LogPrintf("(AddrIndex::IndexBlock) computeUsersRatings - block (%s)\n", block.GetHash().GetHex());
+        return false;
+    }
+
+    // Save ratings for posts
+    if (!computePostsRatings(pindex, postRatings, postReputations)) {
+        LogPrintf("(AddrIndex::IndexBlock) computePostsRatings - block (%s)\n", block.GetHash().GetHex());
+        return false;
+    }
+
+    // Save ratings for comment
+    if (!computeCommentRatings(pindex, commentRatings, commentReputations)) {
+        LogPrintf("(AddrIndex::IndexBlock) computeCommentRatings - block (%s)\n", block.GetHash().GetHex());
+        return false;
+    }
+
+    return true;
+}
+
 bool AddrIndex::CheckRItemExists(std::string table, std::string txid)
 {
     if (table == "Posts")
@@ -436,6 +589,16 @@ bool AddrIndex::WriteRTransaction(std::string table, reindexer::Item& item, int 
         if (!g_pocketdb->UpdateBlockingView(item["address"].As<string>(), item["address_to"].As<string>()).ok()) return false;
     }
 
+    // New Comment
+    if (table == "Comment") {
+        if (!g_pocketdb->CommitLastItem("Comment", item).ok()) return false;
+    }
+
+    // Comment score
+    if (table == "CommentScores") {
+        if (!g_pocketdb->UpsertWithCommit("CommentScores", item).ok()) return false;
+    }
+
     return true;
 }
 
@@ -472,67 +635,6 @@ bool AddrIndex::IsPocketnetTransaction(const CTransactionRef& tx)
 bool AddrIndex::IsPocketnetTransaction(const CTransaction& tx)
 {
     return IsPocketnetTransaction(MakeTransactionRef(tx));
-}
-
-bool AddrIndex::IndexBlock(const CBlock& block, CBlockIndex* pindex)
-{
-    // User ratings map for this block
-    // <address, <sum, cnt>>
-    std::map<std::string, std::pair<int, int>> userRatings;
-
-    // Post ratings map for this block
-    // <posttxid, <sum, cnt>>
-    std::map<std::string, std::pair<int, int>> postRatings;
-
-    // Post reputations map for this block
-    // <posttxid, <sum, cnt>>
-    std::map<std::string, int> postReputations;
-
-    for (const auto& tx : block.vtx) {
-        // Indexing UTXOs
-        if (!indexUTXO(tx, pindex)) {
-            LogPrintf("(AddrIndex::IndexBlock) indexUTXO - tx (%s)\n", tx->GetHash().GetHex());
-            return false;
-        }
-
-        // Indexing addresses
-        if (!indexAddress(tx, pindex)) {
-            LogPrintf("(AddrIndex::IndexBlock) indexAddress - tx (%s)\n", tx->GetHash().GetHex());
-            return false;
-        }
-
-        std::string ri_table;
-        if (!GetPocketnetTXType(tx, ri_table)) continue;
-
-        // Indexing ratings
-        if (ri_table == "Scores" && !indexRating(tx, userRatings, postRatings, postReputations, pindex)) {
-            LogPrintf("(AddrIndex::IndexBlock) indexRating - tx (%s)\n", tx->GetHash().GetHex());
-            return false;
-        }
-        
-        if (ri_table == "Posts" && !indexPost(tx, pindex)) {
-            LogPrintf("(AddrIndex::IndexBlock) indexPost - tx (%s)\n", tx->GetHash().GetHex());
-            return false;
-        }
-
-        // Indexing tags
-        // TODO (brangr): Temporaly remove tags
-        // if (!indexTags(tx, pindex)) return false;
-    }
-
-    // Save ratings for users
-    if (!computeUsersRatings(pindex, userRatings)) {
-        LogPrintf("(AddrIndex::IndexBlock) computeUsersRatings - block (%s)\n", block.GetHash().GetHex());
-        return false;
-    }
-
-    // Save ratings for posts
-    if (!computePostsRatings(pindex, postRatings, postReputations)) {
-        LogPrintf("(AddrIndex::IndexBlock) computePostsRatings - block (%s)\n", block.GetHash().GetHex());
-        return false;
-    }
-
-    return true;
 }
 
 bool AddrIndex::RollbackDB(int blockHeight, bool back_to_mempool)
@@ -673,6 +775,35 @@ bool AddrIndex::RollbackDB(int blockHeight, bool back_to_mempool)
             if (!g_pocketdb->UpdateBlockingView(_bl_address, _bl_address_to).ok()) return false;
         }
     }
+    
+    // Rollback CommentScores
+    {
+        if (back_to_mempool) {
+            reindexer::QueryResults _comment_scores_res;
+            if (g_pocketdb->DB()->Select(reindexer::Query("CommentScores").Where("block", CondGt, blockHeight), _comment_scores_res).ok()) {
+                for (auto& it : _comment_scores_res) {
+                    reindexer::Item _comment_score_itm = it.GetItem();
+                    if (back_to_mempool && !insert_to_mempool(_comment_score_itm, "CommentScores")) return false;
+                }
+            }
+        }
+
+        if (!g_pocketdb->DeleteWithCommit(reindexer::Query("CommentScores").Where("block", CondGt, blockHeight)).ok()) return false;
+    }
+
+    // Rollback Comments
+    {
+        reindexer::QueryResults _comment_res;
+        if (!g_pocketdb->DB()->Select(reindexer::Query("Comment").Where("block", CondGt, blockHeight), _comment_res).ok()) return false;
+        for (auto& it : _comment_res) {
+            reindexer::Item _delete_comment_itm = it.GetItem();
+            std::string _comment_txid = _delete_comment_itm["txid"].As<string>();
+            std::string _comment_otxid = _delete_comment_itm["otxid"].As<string>();
+
+            if (back_to_mempool && !insert_to_mempool(_delete_comment_itm, "Comment")) return false;
+            if (!g_pocketdb->RestoreLastItem("Comment", _comment_txid, _comment_otxid, blockHeight).ok()) return false;
+        }
+    }
 
     // Rollback Users Ratings
     {
@@ -695,7 +826,7 @@ bool AddrIndex::RollbackDB(int blockHeight, bool back_to_mempool)
 
         // Update users ratings
         for (auto& _user_address : vUsersRatingRefresh) {
-            if (!g_pocketdb->UpdateUserRating(_user_address, blockHeight)) return false;
+            if (!g_pocketdb->UpdateUserReputation(_user_address, blockHeight)) return false;
         }
     }
 
@@ -721,6 +852,31 @@ bool AddrIndex::RollbackDB(int blockHeight, bool back_to_mempool)
         // Update posts ratings
         for (auto& _posttxid : vPostsRatingRefresh) {
             if (!g_pocketdb->UpdatePostRating(_posttxid, blockHeight)) return false;
+        }
+    }
+
+    // Rollback Comment Ratings
+    {
+        std::vector<std::string> vCommentRatingsRefresh;
+
+        // First save all comments for update rating after rollback ratings blocks
+        reindexer::QueryResults commentRatingsRes;
+        if (!g_pocketdb->DB()->Select(reindexer::Query("CommentRatings").Where("block", CondGt, blockHeight), commentRatingsRes).ok()) return false;
+        for (auto& it : commentRatingsRes) {
+            reindexer::Item commentRatingRes = it.GetItem();
+            std::string _commentoid = commentRatingRes["commentid"].As<string>();
+
+            if (std::find(vCommentRatingsRefresh.begin(), vCommentRatingsRefresh.end(), _commentoid) == vCommentRatingsRefresh.end()) {
+                vCommentRatingsRefresh.push_back(_commentoid);
+            }
+        }
+
+        // Rollback ratings blocks
+        if (!g_pocketdb->DeleteWithCommit(reindexer::Query("CommentRatings").Where("block", CondGt, blockHeight)).ok()) return false;
+
+        // Update posts ratings
+        for (auto& _commentoid : vCommentRatingsRefresh) {
+            if (!g_pocketdb->UpdateCommentRating(_commentoid, blockHeight)) return false;
         }
     }
 
@@ -1462,6 +1618,7 @@ bool AddrIndex::CheckRHash(const CBlock& block, CBlockIndex* pindexPrev)
     return blockRHash == currentRHash;
 }
 
+// TODO (brangr): Enable
 bool AddrIndex::WriteRHash(CBlock& block, CBlockIndex* pindexPrev)
 {
     // std::string currentRHash;
@@ -1526,6 +1683,18 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
             g_pocketdb->GetHashItem(item, table, false, itm_hash_ref);
             oitm.pushKV("data_hash_without_ref", itm_hash_ref);
         //}
+    }
+
+    if (table == "Comment") {
+        oitm.pushKV("otxid", item["otxid"].As<string>());
+        oitm.pushKV("postid", item["postid"].As<string>());
+        oitm.pushKV("parentid", item["parentid"].As<string>());
+        oitm.pushKV("answerid", item["answerid"].As<string>());
+    }
+
+    if (table == "CommentScores") {
+        oitm.pushKV("commentid", item["commentid"].As<string>());
+        oitm.pushKV("value", item["value"].As<int>());
     }
 
     return oitm;

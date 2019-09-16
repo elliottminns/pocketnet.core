@@ -970,7 +970,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
                                               "Clients should transition to using signrawtransactionwithkey and signrawtransactionwithwallet");
 }
 
-static UniValue _sendrawtransction(RTransaction& rtx)
+static UniValue _sendrawtransaction(RTransaction& rtx)
 {
     const uint256& hashTx = rtx->GetHash();
 
@@ -1064,7 +1064,7 @@ static UniValue sendrawtransaction(const JSONRPCRequest& request)
     //CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
     RTransaction rtx(mtx);
 
-    return _sendrawtransction(rtx);
+    return _sendrawtransaction(rtx);
 }
 
 static UniValue testmempoolaccept(const JSONRPCRequest& request)
@@ -1908,6 +1908,57 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
         new_rtx.pTransaction["address_to"] = request.params[1]["address"].get_str();
         new_rtx.pTransaction["unblocking"] = true;
 
+    } else if (mesType == "comment" || mesType == "commentEdit" || mesType == "commentDelete") {
+
+        bool valid = true;
+        if (mesType == "commentDelete") valid = valid & request.params[1].exists("otxid");
+        if (mesType != "commentDelete") valid = valid & request.params[1].exists("msg");
+        valid = valid & request.params[1].exists("postid");
+        valid = valid & request.params[1].exists("parentid");
+        valid = valid & request.params[1].exists("answerid");
+        if (!valid) throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameters");
+
+        new_rtx.pTable = "Comment";
+        new_rtx.pTransaction = g_pocketdb->DB()->NewItem(new_rtx.pTable);
+
+        std::string _otxid = new_txid;
+        if (request.params[1].exists("otxid")) _otxid = request.params[1]["otxid"].get_str();
+        new_rtx.pTransaction["txid"] = new_txid;
+        new_rtx.pTransaction["otxid"] = _otxid;
+
+        new_rtx.pTransaction["block"] = -1;
+        new_rtx.pTransaction["address"] = address;
+        new_rtx.pTransaction["time"] = txTime;
+        new_rtx.pTransaction["last"] = (mesType != "commentDelete");
+
+        new_rtx.pTransaction["msg"] = "";
+        if (mesType != "commentDelete") new_rtx.pTransaction["msg"] = request.params[1]["msg"].get_str();
+
+        new_rtx.pTransaction["postid"] = request.params[1]["postid"].get_str();
+        new_rtx.pTransaction["parentid"] = request.params[1]["parentid"].get_str();
+        new_rtx.pTransaction["answerid"] = request.params[1]["answerid"].get_str();
+
+    } else if (mesType == "commentScore") {
+
+        bool valid = true;
+        valid = valid & request.params[1].exists("commentid");
+        valid = valid & request.params[1].exists("value");
+        if (!valid) throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameters");
+
+        new_rtx.pTable = "CommentScores";
+        new_rtx.pTransaction = g_pocketdb->DB()->NewItem(new_rtx.pTable);
+
+        new_rtx.pTransaction["txid"] = new_txid;
+        new_rtx.pTransaction["address"] = address;
+        new_rtx.pTransaction["time"] = txTime;
+        new_rtx.pTransaction["block"] = -1;
+
+        new_rtx.pTransaction["commentid"] = request.params[1]["commentid"].get_str();
+
+        int _val;
+        ParseInt32(request.params[1]["value"].get_str(), &_val);
+        new_rtx.pTransaction["value"] = _val;
+
     } else {
         throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid transaction type");
     }
@@ -1920,7 +1971,7 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     }
 
     // Antibot checked -> create transaction in blockchain
-    UniValue rt = _sendrawtransction(new_rtx);
+    UniValue rt = _sendrawtransaction(new_rtx);
     //-------------------------------------------------
     return rt;
 }

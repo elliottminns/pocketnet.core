@@ -62,6 +62,14 @@ bool ConvertOPToTableName(std::string op, std::string& ri_table)
         ri_table = "Blocking";
     else if (op == OR_UNBLOCKING)
         ri_table = "Blocking";
+    else if (op == OR_COMMENT)
+        ri_table = "Comment";
+    else if (op == OR_COMMENTEDIT)
+        ri_table = "Comment";
+    else if (op == OR_COMMENTDELETE)
+        ri_table = "Comment";
+    else if (op == OR_COMMENTSCORE)
+        ri_table = "CommentScores";
     else
         ret = false;
 
@@ -177,6 +185,11 @@ void FillLimits(const CChainParams& params) {
     _scores_one_to_one.insert({ 0, 99999 });
     _scores_one_to_one.insert({ 225000, 2 });
     Limits.insert(std::make_pair(Limit::scores_one_to_one, _scores_one_to_one));
+
+    // scores_one_to_one_over_comment
+    std::map<int, int64_t> _scores_one_to_one_over_comment;
+    _scores_one_to_one_over_comment.insert({ 0, 20 });
+    Limits.insert(std::make_pair(Limit::scores_one_to_one_over_comment, _scores_one_to_one_over_comment));
 
     // scores_one_to_one time
     std::map<int, int64_t> _scores_one_to_one_depth;

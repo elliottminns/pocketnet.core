@@ -30,7 +30,10 @@ enum Limit {
     max_post_size,
     bad_reputation,
     scores_one_to_one,
-    scores_one_to_one_depth
+    scores_one_to_one_over_comment,
+    scores_one_to_one_depth,
+
+    // TODO (brangr): #Comment Limits for comments
 };
 
 void FillLimits(const CChainParams& params);
@@ -51,6 +54,11 @@ int64_t GetActualLimit(Limit type, int height);
 #define OR_BLOCKING "626c6f636b696e67"
 #define OR_UNBLOCKING "756e626c6f636b696e67"
 
+#define OR_COMMENT "636f6d6d656e74"
+#define OR_COMMENTEDIT "636f6d6d656e7445646974"
+#define OR_COMMENTDELETE "636f6d6d656e7444656c657465"
+#define OR_COMMENTSCORE "636f6d6d656e7453636f7265"
+
 
 // Check transaction type is pocketnet
 bool IsPocketTX(const CTxOut& out);
@@ -60,5 +68,6 @@ bool IsPocketTX(const CTransactionRef& tx);
 
 // Transaction type convert to reindexer table name
 bool ConvertOPToTableName(std::string op, std::string& ri_table);
+
 
 #endif // POCKETNET_H

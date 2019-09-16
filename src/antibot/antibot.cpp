@@ -919,6 +919,9 @@ bool AntiBot::AllowModifyReputation(std::string _score_address, int height) {
 }
 
 bool AntiBot::AllowModifyReputation(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time) {
+    // Check user reputation
+    if (!AllowModifyReputation(_score_address, height)) return false;
+    
     // Disable reputation increment if from one address to one address > 2 scores over day
     int64_t _max_scores_one_to_one = GetActualLimit(Limit::scores_one_to_one, height);
     int64_t _scores_one_to_one_depth = GetActualLimit(Limit::scores_one_to_one_depth, height);
@@ -950,6 +953,33 @@ bool AntiBot::AllowLottery(std::string _score_address, std::string _post_address
             .Where("value", CondSet, {4, 5})
             .Not().Where("txid", CondEq, _txid)
         .InnerJoin("posttxid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, _post_address))
+    );
+    if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
+    
+    // All is OK
+    return true;
+}
+
+bool AntiBot::AllowModifyReputationOverComment(std::string _score_address, std::string _comment_address, int height, const CTransactionRef& tx, bool lottery) {
+    // Check user reputation
+    if (!AllowModifyReputation(_score_address, height)) return false;
+
+    // Disable reputation increment if from one address to one address > Limit::scores_one_to_one scores over Limit::scores_one_to_one_depth
+    int64_t _max_scores_one_to_one = GetActualLimit(Limit::scores_one_to_one_over_comment, height);
+    int64_t _scores_one_to_one_depth = GetActualLimit(Limit::scores_one_to_one_depth, height);
+
+    auto values = { -1, 1 };
+    if (lottery) values = { 1 };
+
+    size_t scores_one_to_one_count = g_pocketdb->SelectCount(
+        reindexer::Query("CommentScores")
+            .Where("address", CondEq, _score_address)
+            .Where("time", CondGe, (int64_t)tx->nTime - _scores_one_to_one_depth)
+            .Where("time", CondLt, (int64_t)tx->nTime)
+            .Where("value", CondSet, values)
+            .Not().Where("txid", CondEq, tx->GetHash().GetHex())
+            // join by original id with txid, not otxid
+            .InnerJoin("commentid", "txid", CondEq, reindexer::Query("Comment").Where("address", CondEq, _comment_address))
     );
     if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
     
