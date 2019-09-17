@@ -109,6 +109,9 @@ private:
 	void getMode(std::string _address, ABMODE &mode, int height);
 	int getLimit(CHECKTYPE _type, ABMODE _mode, int height);
 
+	// Maximum size for reindexer item with switch for type
+	bool check_item_size(UniValue oitm, CHECKTYPE _type, ANTIBOTRESULT &result, int height);
+
 	// Check new post and edited post from address
 	bool check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result);
     bool check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result);
@@ -128,8 +131,11 @@ private:
 	// Check blocking/unblocking
 	bool check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result);
 
-	// Maximum size for reindexer item with switch for type
-	bool check_item_size(UniValue oitm, CHECKTYPE _type, ANTIBOTRESULT &result, int height);
+    // Check new comment
+    bool check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result);
+
+    // Check new score to comment
+    bool check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result);
 
 public:
     explicit AntiBot();
@@ -163,8 +169,7 @@ public:
         to test the possibility of changing that reputation
     */
     bool AllowModifyReputation(std::string _score_address, int height);
-    bool AllowModifyReputation(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time);
-    bool AllowLottery(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time);
+    bool AllowModifyReputationOverPost(std::string _score_address, std::string _post_address, int height, const CTransactionRef& tx, bool lottery);
     bool AllowModifyReputationOverComment(std::string _score_address, std::string _comment_address, int height, const CTransactionRef& tx, bool lottery);
 };
 //-----------------------------------------------------

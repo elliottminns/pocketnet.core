@@ -559,7 +559,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                         continue;
                     }
                     
-                    if (g_antibot->AllowLottery(_score_itm["address"].As<string>(), _post_itm["address"].As<string>(), pindexPrev->nHeight, tx->GetHash().GetHex(), tx->nTime)) {
+                    if (g_antibot->AllowModifyReputationOverPost(_score_itm["address"].As<string>(), _post_itm["address"].As<string>(), pindexPrev->nHeight, tx, true)) {
                         if (allRatings.find(_address) == allRatings.end()) allRatings.insert(std::make_pair(_address, 0));
                         allRatings[_address] += (_value - 3);
                     }

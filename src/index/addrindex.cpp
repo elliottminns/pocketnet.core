@@ -258,7 +258,7 @@ bool AddrIndex::indexRating(const CTransactionRef& tx,
     }
 
     // USER & POST reputation
-    if (g_antibot->AllowModifyReputation(_check_score_address, post_address, pindex->nHeight - 1, txid, tx->nTime)) {
+    if (g_antibot->AllowModifyReputationOverPost(_check_score_address, post_address, pindex->nHeight - 1, tx, false)) {
 
         // User reputation
         if (userReputations.find(post_address) == userReputations.end()) userReputations.insert(std::make_pair(post_address, 0));

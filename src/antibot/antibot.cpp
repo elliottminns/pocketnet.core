@@ -136,6 +136,22 @@ bool AntiBot::CheckRegistration(std::string _address) {
     return false;
 }
 
+bool AntiBot::check_item_size(UniValue oitm, CHECKTYPE _type, ANTIBOTRESULT &result, int height) {
+    int _limit = oitm["size"].get_int();
+
+    if (_type == CHECKTYPE::Post) _limit = GetActualLimit(Limit::max_post_size, height);
+    if (_type == CHECKTYPE::User) _limit = GetActualLimit(Limit::max_user_size, height);
+
+    if (oitm["size"].get_int() > _limit) {
+        result = ANTIBOTRESULT::ContentSizeLimit;
+        return false;
+    }
+
+    return true;
+}
+
+//-----------------------------------------------------
+
 bool AntiBot::check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result)
 {
     std::string _address = oitm["address"].get_str();
@@ -752,19 +768,70 @@ bool AntiBot::check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
     return true;
 }
 
-bool AntiBot::check_item_size(UniValue oitm, CHECKTYPE _type, ANTIBOTRESULT &result, int height) {
-    int _limit = oitm["size"].get_int();
+bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result)
+{
+    std::string _address = oitm["address"].get_str();
+    std::string _txid = oitm["txid"].get_str();
+    int64_t _time = oitm["time"].get_int64();
 
-    if (_type == CHECKTYPE::Post) _limit = GetActualLimit(Limit::max_post_size, height);
-    if (_type == CHECKTYPE::User) _limit = GetActualLimit(Limit::max_user_size, height);
+    std::string _otxid = oitm["otxid"].get_str();
+    std::string _postid = oitm["postid"].get_str();
+    std::string _parentid = oitm["parentid"].get_str();
+    std::string _answerid = oitm["answerid"].get_str();
 
-    if (oitm["size"].get_int() > _limit) {
-        result = ANTIBOTRESULT::ContentSizeLimit;
+    if (!CheckRegistration(_address, _txid, _time, checkMempool, blockVtx)) {
+        result = ANTIBOTRESULT::NotRegistered;
+        return false;
+    }
+
+    // Compute count of posts for last 24 hours
+    int postsCount = g_pocketdb->SelectCount(Query("Posts").Where("address", CondEq, _address).Where("txidEdit", CondEq, "").Where("time", CondGe, _time - 86400));
+    postsCount += g_pocketdb->SelectCount(Query("PostsHistory").Where("address", CondEq, _address).Where("txidEdit", CondEq, "").Where("time", CondGe, _time - 86400));
+
+    // Also check mempool
+    if (checkMempool) {
+        reindexer::QueryResults res;
+        if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Posts").Where("txid_source", CondEq, "").Not().Where("txid", CondEq, _txid), res).ok()) {
+            for (auto& m : res) {
+                reindexer::Item mItm = m.GetItem();
+                std::string t_src = DecodeBase64(mItm["data"].As<string>());
+
+                reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Posts");
+                if (t_itm.FromJSON(t_src).ok()) {
+                    if (t_itm["time"].As<int64_t>() <= _time && t_itm["address"].As<string>() == _address && t_itm["txidEdit"].As<string>() == "") {
+                        postsCount += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    // Check block
+    if (blockVtx.Exists("Posts")) {
+        for (auto& mtx : blockVtx.Data["Posts"]) {
+            if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["time"].get_int64() <= _time && mtx["txidEdit"].get_str() == "") {
+                postsCount += 1;
+            }
+        }
+    }
+
+    // Check limit
+    ABMODE mode;
+    getMode(_address, mode, chainActive.Height() + 1);
+    int limit = getLimit(Post, mode, chainActive.Height() + 1);
+    if (postsCount >= limit) {
+        result = ANTIBOTRESULT::PostLimit;
         return false;
     }
 
     return true;
 }
+
+bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result)
+{
+
+}
+
 //-----------------------------------------------------
 
 //-----------------------------------------------------
@@ -830,6 +897,12 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
     else if (table == "Users") {
         if (!check_item_size(oitm, User, resultCode, chainActive.Height() + 1)) return;
         check_changeInfo(oitm, blockVtx, checkMempool, resultCode);
+    }
+	else if (table == "Comment") {
+        check_comment(oitm, blockVtx, checkMempool, resultCode);
+    }
+	else if (table == "CommentScores") {
+        check_comment_score(oitm, blockVtx, checkMempool, resultCode);
     }
     else {
         resultCode = ANTIBOTRESULT::Unknown;
@@ -918,40 +991,24 @@ bool AntiBot::AllowModifyReputation(std::string _score_address, int height) {
     return true;
 }
 
-bool AntiBot::AllowModifyReputation(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time) {
+bool AntiBot::AllowModifyReputationOverPost(std::string _score_address, std::string _post_address, int height, const CTransactionRef& tx, bool lottery) {
     // Check user reputation
     if (!AllowModifyReputation(_score_address, height)) return false;
     
     // Disable reputation increment if from one address to one address > 2 scores over day
     int64_t _max_scores_one_to_one = GetActualLimit(Limit::scores_one_to_one, height);
     int64_t _scores_one_to_one_depth = GetActualLimit(Limit::scores_one_to_one_depth, height);
-    size_t scores_one_to_one_count = g_pocketdb->SelectCount(
-        reindexer::Query("Scores")
-            .Where("address", CondEq, _score_address)
-            .Where("time", CondGe, _tx_time - _scores_one_to_one_depth)
-            .Where("time", CondLt, _tx_time)
-            .Not().Where("txid", CondEq, _txid)
-        .InnerJoin("posttxid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, _post_address))
-    );
-    if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
+
+    auto values = { 1, 2, 3, 4, 5 };
+    if (lottery) values = { 4, 5 };
     
-    // All is OK
-    return true;
-}
-
-bool AntiBot::AllowLottery(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time) {
-    if (!AllowModifyReputation(_score_address, height)) return false;
-
-    // Disable reputation increment if from one address to one address > 2 scores over day
-    int64_t _max_scores_one_to_one = GetActualLimit(Limit::scores_one_to_one, height);
-    int64_t _scores_one_to_one_depth = GetActualLimit(Limit::scores_one_to_one_depth, height);
     size_t scores_one_to_one_count = g_pocketdb->SelectCount(
         reindexer::Query("Scores")
             .Where("address", CondEq, _score_address)
-            .Where("time", CondGe, _tx_time - _scores_one_to_one_depth)
-            .Where("time", CondLt, _tx_time)
-            .Where("value", CondSet, {4, 5})
-            .Not().Where("txid", CondEq, _txid)
+            .Where("time", CondGe, (int64_t)tx->nTime - _scores_one_to_one_depth)
+            .Where("time", CondLt, (int64_t)tx->nTime)
+            .Where("value", CondSet, values)
+            .Not().Where("txid", CondEq, tx->GetHash().GetHex())
         .InnerJoin("posttxid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, _post_address))
     );
     if (scores_one_to_one_count >= _max_scores_one_to_one) return false;

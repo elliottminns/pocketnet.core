@@ -4,6 +4,10 @@
 #include "pocketdb/pocketdb.h"
 #include "html.h"
 #include "tools/logger.h"
+
+#if defined(HAVE_CONFIG_H)
+#include <config/pocketcoin-config.h>
+#endif //HAVE_CONFIG_H
 //-----------------------------------------------------
 std::unique_ptr<PocketDB> g_pocketdb;
 std::map<uint256, std::string> POCKETNET_DATA;
@@ -92,11 +96,11 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("UsersView", {"id", "tree", "int", IndexOpts()});
         
         // TODO (brangr): Remove with v0.18.8
-        if (CLIENT_VERSION_MAJOR == 0 && CLIENT_VERSION_MINOR == 18 && CLIENT_VERSION_REVISION && 6) {
-            db->DropIndex("UsersView", "scoreSum");
-            db->DropIndex("UsersView", "scoreCnt");
-            db->DropIndex("UsersView", "reputation");
-        }
+        // if (CLIENT_VERSION_MAJOR == 0 && CLIENT_VERSION_MINOR == 18 && CLIENT_VERSION_REVISION && 6) {
+        //     db->DropIndex("UsersView", "scoreSum");
+        //     db->DropIndex("UsersView", "scoreCnt");
+        //     db->DropIndex("UsersView", "reputation");
+        // }
         
         db->AddIndex("UsersView", {"reputation", "", "double", IndexOpts()});
         db->AddIndex("UsersView", {"name+about", {"name","about"}, "text", "composite", IndexOpts().SetCollateMode(CollateUTF8) });
@@ -133,11 +137,11 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("UserRatings", {"address", "hash", "string", IndexOpts()});
 
         // TODO (brangr): Remove with v0.18.8
-        if (CLIENT_VERSION_MAJOR == 0 && CLIENT_VERSION_MINOR == 18 && CLIENT_VERSION_REVISION && 6) {
-            db->DropIndex("UserRatings", "scoreSum");
-            db->DropIndex("UserRatings", "scoreCnt");
-            db->DropIndex("UserRatings", "reputation");
-        }
+        // if (CLIENT_VERSION_MAJOR == 0 && CLIENT_VERSION_MINOR == 18 && CLIENT_VERSION_REVISION && 6) {
+        //     db->DropIndex("UserRatings", "scoreSum");
+        //     db->DropIndex("UserRatings", "scoreCnt");
+        //     db->DropIndex("UserRatings", "reputation");
+        // }
 
         db->AddIndex("UserRatings", {"reputation", "", "double", IndexOpts()});
         db->AddIndex("UserRatings", {"address+block", {"address", "block"}, "hash", "composite", IndexOpts().PK()});
@@ -263,9 +267,9 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("BlockingView", {"address_to", "hash", "string", IndexOpts()});
 
         // TODO (brangr): Remove with v0.18.8
-        if (CLIENT_VERSION_MAJOR == 0 && CLIENT_VERSION_MINOR == 18 && CLIENT_VERSION_REVISION && 6) {
-            db->DropIndex("BlockingView", "address_reputation");
-        }
+        // if (CLIENT_VERSION_MAJOR == 0 && CLIENT_VERSION_MINOR == 18 && CLIENT_VERSION_REVISION && 6) {
+        //     db->DropIndex("BlockingView", "address_reputation");
+        // }
 
         db->AddIndex("BlockingView", {"address_reputation", "", "double", IndexOpts()});
         db->AddIndex("BlockingView", {"address+address_to", {"address", "address_to"}, "hash", "composite", IndexOpts().PK()});
