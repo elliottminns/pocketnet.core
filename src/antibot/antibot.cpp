@@ -770,66 +770,66 @@ bool AntiBot::check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
 
 bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result)
 {
-    std::string _address = oitm["address"].get_str();
-    std::string _txid = oitm["txid"].get_str();
-    int64_t _time = oitm["time"].get_int64();
+    // std::string _address = oitm["address"].get_str();
+    // std::string _txid = oitm["txid"].get_str();
+    // int64_t _time = oitm["time"].get_int64();
 
-    std::string _otxid = oitm["otxid"].get_str();
-    std::string _postid = oitm["postid"].get_str();
-    std::string _parentid = oitm["parentid"].get_str();
-    std::string _answerid = oitm["answerid"].get_str();
+    // std::string _otxid = oitm["otxid"].get_str();
+    // std::string _postid = oitm["postid"].get_str();
+    // std::string _parentid = oitm["parentid"].get_str();
+    // std::string _answerid = oitm["answerid"].get_str();
 
-    if (!CheckRegistration(_address, _txid, _time, checkMempool, blockVtx)) {
-        result = ANTIBOTRESULT::NotRegistered;
-        return false;
-    }
+    // if (!CheckRegistration(_address, _txid, _time, checkMempool, blockVtx)) {
+    //     result = ANTIBOTRESULT::NotRegistered;
+    //     return false;
+    // }
 
-    // Compute count of posts for last 24 hours
-    int postsCount = g_pocketdb->SelectCount(Query("Posts").Where("address", CondEq, _address).Where("txidEdit", CondEq, "").Where("time", CondGe, _time - 86400));
-    postsCount += g_pocketdb->SelectCount(Query("PostsHistory").Where("address", CondEq, _address).Where("txidEdit", CondEq, "").Where("time", CondGe, _time - 86400));
+    // // Compute count of posts for last 24 hours
+    // int postsCount = g_pocketdb->SelectCount(Query("Posts").Where("address", CondEq, _address).Where("txidEdit", CondEq, "").Where("time", CondGe, _time - 86400));
+    // postsCount += g_pocketdb->SelectCount(Query("PostsHistory").Where("address", CondEq, _address).Where("txidEdit", CondEq, "").Where("time", CondGe, _time - 86400));
 
-    // Also check mempool
-    if (checkMempool) {
-        reindexer::QueryResults res;
-        if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Posts").Where("txid_source", CondEq, "").Not().Where("txid", CondEq, _txid), res).ok()) {
-            for (auto& m : res) {
-                reindexer::Item mItm = m.GetItem();
-                std::string t_src = DecodeBase64(mItm["data"].As<string>());
+    // // Also check mempool
+    // if (checkMempool) {
+    //     reindexer::QueryResults res;
+    //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Posts").Where("txid_source", CondEq, "").Not().Where("txid", CondEq, _txid), res).ok()) {
+    //         for (auto& m : res) {
+    //             reindexer::Item mItm = m.GetItem();
+    //             std::string t_src = DecodeBase64(mItm["data"].As<string>());
 
-                reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Posts");
-                if (t_itm.FromJSON(t_src).ok()) {
-                    if (t_itm["time"].As<int64_t>() <= _time && t_itm["address"].As<string>() == _address && t_itm["txidEdit"].As<string>() == "") {
-                        postsCount += 1;
-                    }
-                }
-            }
-        }
-    }
+    //             reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Posts");
+    //             if (t_itm.FromJSON(t_src).ok()) {
+    //                 if (t_itm["time"].As<int64_t>() <= _time && t_itm["address"].As<string>() == _address && t_itm["txidEdit"].As<string>() == "") {
+    //                     postsCount += 1;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
-    // Check block
-    if (blockVtx.Exists("Posts")) {
-        for (auto& mtx : blockVtx.Data["Posts"]) {
-            if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["time"].get_int64() <= _time && mtx["txidEdit"].get_str() == "") {
-                postsCount += 1;
-            }
-        }
-    }
+    // // Check block
+    // if (blockVtx.Exists("Posts")) {
+    //     for (auto& mtx : blockVtx.Data["Posts"]) {
+    //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["time"].get_int64() <= _time && mtx["txidEdit"].get_str() == "") {
+    //             postsCount += 1;
+    //         }
+    //     }
+    // }
 
-    // Check limit
-    ABMODE mode;
-    getMode(_address, mode, chainActive.Height() + 1);
-    int limit = getLimit(Post, mode, chainActive.Height() + 1);
-    if (postsCount >= limit) {
-        result = ANTIBOTRESULT::PostLimit;
-        return false;
-    }
+    // // Check limit
+    // ABMODE mode;
+    // getMode(_address, mode, chainActive.Height() + 1);
+    // int limit = getLimit(Post, mode, chainActive.Height() + 1);
+    // if (postsCount >= limit) {
+    //     result = ANTIBOTRESULT::PostLimit;
+    //     return false;
+    // }
 
     return true;
 }
 
 bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result)
 {
-
+    return true;
 }
 
 //-----------------------------------------------------

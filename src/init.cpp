@@ -1489,9 +1489,9 @@ bool AppInitMain()
 
     // TODO (brangr): Remove in v0.18.8
     // For this version need reindexing tables only first launch
-    // if (CLIENT_VERSION_MAJOR == 0 && CLIENT_VERSION_MINOR == 18 && CLIENT_VERSION_REVISION && 6) {
-    //     fReindex = true;
-    // }
+    if (CLIENT_VERSION_MAJOR == 0 && CLIENT_VERSION_MINOR == 18 && CLIENT_VERSION_REVISION && 6) {
+        fReindex = true;
+    }
 
     // cache size calculations
     int64_t nTotalCache = (gArgs.GetArg("-dbcache", nDefaultDbCache) << 20);
