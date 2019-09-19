@@ -999,8 +999,17 @@ bool AntiBot::AllowModifyReputationOverPost(std::string _score_address, std::str
     int64_t _max_scores_one_to_one = GetActualLimit(Limit::scores_one_to_one, height);
     int64_t _scores_one_to_one_depth = GetActualLimit(Limit::scores_one_to_one_depth, height);
 
-    auto values = { 1, 2, 3, 4, 5 };
-    if (lottery) values = { 4, 5 };
+    std::vector<int> values;
+    if (lottery) {
+        values.push_back(4);
+        values.push_back(5);
+    } else {
+        values.push_back(1);
+        values.push_back(2);
+        values.push_back(3);
+        values.push_back(4);
+        values.push_back(5);
+	}
     
     size_t scores_one_to_one_count = g_pocketdb->SelectCount(
         reindexer::Query("Scores")
