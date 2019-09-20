@@ -11,6 +11,7 @@
 #include <timedata.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string.hpp>
+#include "html.h"
 //-----------------------------------------------------
 struct UserStateItem {
 	std::string address;
@@ -41,7 +42,10 @@ enum CHECKTYPE {
 	Post,
     PostEdit,
 	Score,
-	Complain
+	Complain,
+    Comment,
+    CommentEdit,
+    CommentScore
 };
 //-----------------------------------------------------
 enum ABMODE {
@@ -72,13 +76,22 @@ enum ANTIBOTRESULT {
     NicknameLong = 19,
     ReferrerSelf = 20,
     FailedOpReturn = 21,
-    InvalideBlocking = 22,
+    InvalidBlocking = 22,
     DoubleBlocking = 23,
     SelfBlocking = 24,
     DoublePostEdit = 25,
     PostEditLimit = 26,
     PostEditUnauthorized = 27,
-    ManyTransactions = 28
+    ManyTransactions = 28,
+    CommentLimit = 29,
+    CommentEditLimit = 30,
+    CommentScoreLimit = 31,
+    Blocking = 32,
+    Size = 33,
+    InvalidParentComment = 34,
+    InvalidAnswerComment = 35,
+    DoubleCommentEdit = 37
+
 };
 //-----------------------------------------------------
 struct BlockVTX {
@@ -133,6 +146,8 @@ private:
 
     // Check new comment
     bool check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result);
+    bool check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result);
+    bool check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result);
 
     // Check new score to comment
     bool check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result);

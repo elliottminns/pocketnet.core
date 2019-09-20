@@ -84,7 +84,7 @@ private:
         CBlockIndex* pindex);
     /*
 		Indexing block transactions for collect rating of User.
-		OP_RETURN can contains `OR_COMMENTSCORE` value - its Score for Comment
+		OP_RETURN can contains `OR_COMMENT_SCORE` value - its Score for Comment
 	*/
 	bool indexCommentRating(const CTransactionRef& tx, 
         std::map<std::string, double>& userReputations,

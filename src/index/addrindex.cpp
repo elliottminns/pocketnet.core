@@ -1636,6 +1636,7 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
 {
     UniValue oitm(UniValue::VOBJ);
 
+    oitm.pushKV("type", PocketTXType(tx));
     oitm.pushKV("table", table);
     oitm.pushKV("txid", item["txid"].As<string>());
     oitm.pushKV("address", item["address"].As<string>());
@@ -1686,6 +1687,7 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
     }
 
     if (table == "Comment") {
+        oitm.pushKV("msg", item["msg"].As<string>());
         oitm.pushKV("otxid", item["otxid"].As<string>());
         oitm.pushKV("postid", item["postid"].As<string>());
         oitm.pushKV("parentid", item["parentid"].As<string>());
