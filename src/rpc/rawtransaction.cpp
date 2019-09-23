@@ -1911,7 +1911,7 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     } else if (mesType == "comment" || mesType == "commentEdit" || mesType == "commentDelete") {
 
         bool valid = true;
-        if (mesType == "commentDelete") valid = valid & request.params[1].exists("otxid");
+        if (mesType != "comment") valid = valid & request.params[1].exists("id");
         if (mesType != "commentDelete") valid = valid & request.params[1].exists("msg");
         valid = valid & request.params[1].exists("postid");
         valid = valid & request.params[1].exists("parentid");
@@ -1922,7 +1922,7 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
         new_rtx.pTransaction = g_pocketdb->DB()->NewItem(new_rtx.pTable);
 
         std::string _otxid = new_txid;
-        if (request.params[1].exists("otxid")) _otxid = request.params[1]["otxid"].get_str();
+        if (request.params[1].exists("id")) _otxid = request.params[1]["id"].get_str();
         new_rtx.pTransaction["txid"] = new_txid;
         new_rtx.pTransaction["otxid"] = _otxid;
 
@@ -1932,7 +1932,8 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
         new_rtx.pTransaction["last"] = (mesType != "commentDelete");
 
         new_rtx.pTransaction["msg"] = "";
-        if (mesType != "commentDelete") new_rtx.pTransaction["msg"] = request.params[1]["msg"].get_str();
+        if (mesType != "commentDelete") 
+            new_rtx.pTransaction["msg"] = request.params[1]["msg"].get_str();
 
         new_rtx.pTransaction["postid"] = request.params[1]["postid"].get_str();
         new_rtx.pTransaction["parentid"] = request.params[1]["parentid"].get_str();

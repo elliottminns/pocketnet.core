@@ -160,6 +160,7 @@
     <ClCompile Include="..\..\src\pocketdb\pocketnet.cpp" />
     <ClCompile Include="..\..\src\primitives\rtransaction.cpp" />
     <ClCompile Include="..\..\src\rpc\comments.cpp" />
+    <ClCompile Include="..\..\src\rpc\pocketnet.cpp" />
     <ClCompile Include="..\..\src\rpc\net.cpp">
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)\netrpc.obj</ObjectFileName>
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)\netrpc.obj</ObjectFileName>
