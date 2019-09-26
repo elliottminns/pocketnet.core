@@ -1035,7 +1035,6 @@ bool PocketDB::GetHashItem(Item& item, std::string table, bool with_referrer, st
 
     if (table == "Comment") {
         data += item["postid"].As<string>();
-        data += item["address"].As<string>();
         data += item["msg"].As<string>();
         data += item["parentid"].As<string>();
         data += item["answerid"].As<string>();
