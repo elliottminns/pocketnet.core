@@ -522,7 +522,7 @@ POCKETCOIN_CORE_H = \
     rpc/rawtransaction.h \
     rpc/register.h \
     rpc/util.h \
-    rpc/pocketnet.h \
+    rpc/pocketrpc.h \
     scheduler.h \
     script/descriptor.h \
     script/ismine.h \
@@ -628,7 +628,7 @@ libpocketcoin_server_a_SOURCES = \
     rpc/server.cpp \
     rpc/util.cpp \
     rpc/comments.cpp \
-    rpc/pocketnet.cpp \
+    rpc/pocketrpc.cpp \
     script/sigcache.cpp \
     shutdown.cpp \
     staker.cpp \

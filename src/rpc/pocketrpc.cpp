@@ -70,9 +70,7 @@ UniValue getcommentsV2(const JSONRPCRequest& request)
         oCmnt.pushKV("scoreCnt", cmntItm["scoreCnt"].As<string>());
         oCmnt.pushKV("reputation", cmntItm["reputation"].As<string>());
         oCmnt.pushKV("edit", cmntItm["otxid"].As<string>() != cmntItm["txid"].As<string>());
-
-        if (parentid == "")
-            oCmnt.pushKV("children", std::to_string(g_pocketdb->SelectCount(Query("Comment").Where("parentid", CondEq, cmntItm["otxid"].As<string>()).Where("last", CondEq, true))));
+        oCmnt.pushKV("children", std::to_string(g_pocketdb->SelectCount(Query("Comment").Where("parentid", CondEq, cmntItm["otxid"].As<string>()).Where("last", CondEq, true))));
 
         aResult.push_back(oCmnt);
     }
