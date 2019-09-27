@@ -928,7 +928,7 @@ bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMe
     // Double edit in block denied
     if (blockVtx.Exists("Comment")) {
         for (auto& mtx : blockVtx.Data["Comment"]) {
-            if (mtx["otxid"].get_str() == _otxid) {
+            if (mtx["txid"].get_str() != _txid && mtx["otxid"].get_str() == _otxid) {
                 result = ANTIBOTRESULT::DoubleCommentEdit;
                 return false;
             }
@@ -938,7 +938,7 @@ bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMe
     // Double edit in mempool denied
     if (checkMempool) {
         reindexer::QueryResults res;
-        if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Comment"), res).ok()) {
+        if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Comment").Not().Where("txid", CondEq, _txid), res).ok()) {
             for (auto& m : res) {
                 reindexer::Item mItm = m.GetItem();
                 std::string t_src = DecodeBase64(mItm["data"].As<string>());
@@ -1009,7 +1009,7 @@ bool AntiBot::check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool check
     // Double delete in block denied
     if (blockVtx.Exists("Comment")) {
         for (auto& mtx : blockVtx.Data["Comment"]) {
-            if (mtx["otxid"].get_str() == _otxid) {
+            if (mtx["txid"].get_str() != _txid && mtx["otxid"].get_str() == _otxid) {
                 result = ANTIBOTRESULT::DoubleCommentEdit;
                 return false;
             }
@@ -1019,7 +1019,7 @@ bool AntiBot::check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool check
     // Double edit in mempool denied
     if (checkMempool) {
         reindexer::QueryResults res;
-        if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Comment"), res).ok()) {
+        if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Comment").Not().Where("txid", CondEq, _txid), res).ok()) {
             for (auto& m : res) {
                 reindexer::Item mItm = m.GetItem();
                 std::string t_src = DecodeBase64(mItm["data"].As<string>());
