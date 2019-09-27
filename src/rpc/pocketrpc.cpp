@@ -1,6 +1,6 @@
 // Copyright (c) 2019 The Pocketcoin Core developers
 
-#include <rpc/pocketnet.h>
+#include <rpc/pocketrpc.h>
 
 UniValue getcommentsV2(const JSONRPCRequest& request)
 {
@@ -40,7 +40,7 @@ UniValue getcommentsV2(const JSONRPCRequest& request)
             Query("Comment")
             .Where("otxid", CondSet, cmnids)
             .Where("last", CondEq, true)
-            .InnerJoin("otxid", "txid", CondEq, Query("Comment").Where("otxid", CondSet, cmnids).Limit(1))
+            .InnerJoin("otxid", "txid", CondEq, Query("Comment").Where("txid", CondSet, cmnids).Limit(1))
         ,commRes);
     else 
         g_pocketdb->Select(
@@ -48,7 +48,7 @@ UniValue getcommentsV2(const JSONRPCRequest& request)
             .Where("postid", CondEq, postid)
             .Where("parentid", CondEq, parentid)
             .Where("last", CondEq, true)
-            .InnerJoin("otxid", "txid", CondEq, Query("Comment").Where("otxid", CondSet, cmnids).Limit(1))
+            .InnerJoin("otxid", "txid", CondEq, Query("Comment").Limit(1))
         ,commRes);
 
     UniValue aResult(UniValue::VARR);
@@ -57,7 +57,7 @@ UniValue getcommentsV2(const JSONRPCRequest& request)
         reindexer::Item ocmntItm = it.GetJoined()[0][0].GetItem();
 
         UniValue oCmnt(UniValue::VOBJ);
-        oCmnt.pushKV("id", cmntItm["id"].As<string>());
+        oCmnt.pushKV("id", cmntItm["otxid"].As<string>());
         oCmnt.pushKV("postid", cmntItm["postid"].As<string>());
         oCmnt.pushKV("address", cmntItm["address"].As<string>());
         oCmnt.pushKV("time", ocmntItm["time"].As<string>());
@@ -93,7 +93,7 @@ UniValue getlastcommentsV2(const JSONRPCRequest& request)
     }
 
     reindexer::QueryResults commRes;
-	g_pocketdb->Select(
+    g_pocketdb->Select(
         Query("Comment")
         .Where("last", CondEq, true)
         .Sort("time", true)
@@ -107,7 +107,7 @@ UniValue getlastcommentsV2(const JSONRPCRequest& request)
         reindexer::Item ocmntItm = it.GetJoined()[0][0].GetItem();
 
         UniValue oCmnt(UniValue::VOBJ);
-        oCmnt.pushKV("id", cmntItm["id"].As<string>());
+        oCmnt.pushKV("id", cmntItm["otxid"].As<string>());
         oCmnt.pushKV("postid", cmntItm["postid"].As<string>());
         oCmnt.pushKV("address", cmntItm["address"].As<string>());
         oCmnt.pushKV("time", ocmntItm["time"].As<string>());
@@ -129,8 +129,8 @@ UniValue getlastcommentsV2(const JSONRPCRequest& request)
 
 static const CRPCCommand commands[] =
     {
-        {"pocketnetrpc",   "getlastcommentsV2",    &getlastcommentsV2,      {"count"}},
-        {"pocketnetrpc",   "getcommentsV2",        &getcommentsV2,          {"postid", "parentid"}},
+        {"pocketnetrpc",   "getlastcomments2",    &getlastcommentsV2,      {"count"}},
+        {"pocketnetrpc",   "getcomments2",        &getcommentsV2,          {"postid", "parentid"}},
 };
 
 void RegisterPocketnetRPCCommands(CRPCTable& t)

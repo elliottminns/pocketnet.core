@@ -1977,7 +1977,7 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     return rt;
 }
 //----------------------------------------------------------
-UniValue getPostData(reindexer::Item& itm, std::string address)
+UniValue getPostData(reindexer::Item& itm, std::string address, int comments_version = 0)
 {
     UniValue entry(UniValue::VOBJ);
 
@@ -2026,27 +2026,51 @@ UniValue getPostData(reindexer::Item& itm, std::string address)
         entry.pushKV("myVal", errS.ok() ? scoreMyItm["value"].As<string>() : "0");
     }
 
-    int totalComments = g_pocketdb->SelectCount(Query("Comments").Where("postid", CondEq, itm["txid"].As<string>()));
-    reindexer::Item cmntItm;
-    g_pocketdb->SelectOne(Query("Comments").Where("postid", CondEq, itm["txid"].As<string>()).Where("parentid", CondEq, "").Sort("time", true), cmntItm);
-    entry.pushKV("comments", totalComments);
-    if (totalComments > 0) {
-        UniValue oCmnt(UniValue::VOBJ);
-        oCmnt.pushKV("id", cmntItm["id"].As<string>());
-        oCmnt.pushKV("postid", cmntItm["postid"].As<string>());
-        oCmnt.pushKV("address", cmntItm["address"].As<string>());
-        oCmnt.pushKV("pubkey", cmntItm["pubkey"].As<string>());
-        oCmnt.pushKV("signature", cmntItm["signature"].As<string>());
-        oCmnt.pushKV("time", cmntItm["time"].As<string>());
-        oCmnt.pushKV("block", cmntItm["block"].As<string>());
-        oCmnt.pushKV("msg", cmntItm["msg"].As<string>());
-        oCmnt.pushKV("parentid", cmntItm["parentid"].As<string>());
-        oCmnt.pushKV("answerid", cmntItm["answerid"].As<string>());
-        oCmnt.pushKV("timeupd", cmntItm["timeupd"].As<string>());
-        oCmnt.pushKV("children", std::to_string(g_pocketdb->SelectCount(Query("Comments").Where("parentid", CondEq, cmntItm["id"].As<string>()))));
+	if (comments_version == 0) {
+        int totalComments = g_pocketdb->SelectCount(Query("Comments").Where("postid", CondEq, itm["txid"].As<string>()));
+        reindexer::Item cmntItm;
+        g_pocketdb->SelectOne(Query("Comments").Where("postid", CondEq, itm["txid"].As<string>()).Where("parentid", CondEq, "").Sort("time", true), cmntItm);
+        entry.pushKV("comments", totalComments);
+        if (totalComments > 0) {
+            UniValue oCmnt(UniValue::VOBJ);
+            oCmnt.pushKV("id", cmntItm["id"].As<string>());
+            oCmnt.pushKV("postid", cmntItm["postid"].As<string>());
+            oCmnt.pushKV("address", cmntItm["address"].As<string>());
+            oCmnt.pushKV("pubkey", cmntItm["pubkey"].As<string>());
+            oCmnt.pushKV("signature", cmntItm["signature"].As<string>());
+            oCmnt.pushKV("time", cmntItm["time"].As<string>());
+            oCmnt.pushKV("block", cmntItm["block"].As<string>());
+            oCmnt.pushKV("msg", cmntItm["msg"].As<string>());
+            oCmnt.pushKV("parentid", cmntItm["parentid"].As<string>());
+            oCmnt.pushKV("answerid", cmntItm["answerid"].As<string>());
+            oCmnt.pushKV("timeupd", cmntItm["timeupd"].As<string>());
+            oCmnt.pushKV("children", std::to_string(g_pocketdb->SelectCount(Query("Comments").Where("parentid", CondEq, cmntItm["id"].As<string>()))));
 
-        entry.pushKV("lastComment", oCmnt);
-    }
+            entry.pushKV("lastComment", oCmnt);
+        }
+    } else {
+        int totalComments = g_pocketdb->SelectCount(Query("Comments").Where("postid", CondEq, itm["txid"].As<string>()));
+        reindexer::Item cmntItm;
+        g_pocketdb->SelectOne(Query("Comments").Where("postid", CondEq, itm["txid"].As<string>()).Where("parentid", CondEq, "").Sort("time", true), cmntItm);
+        entry.pushKV("comments", totalComments);
+        if (totalComments > 0) {
+            UniValue oCmnt(UniValue::VOBJ);
+            oCmnt.pushKV("id", cmntItm["id"].As<string>());
+            oCmnt.pushKV("postid", cmntItm["postid"].As<string>());
+            oCmnt.pushKV("address", cmntItm["address"].As<string>());
+            oCmnt.pushKV("pubkey", cmntItm["pubkey"].As<string>());
+            oCmnt.pushKV("signature", cmntItm["signature"].As<string>());
+            oCmnt.pushKV("time", cmntItm["time"].As<string>());
+            oCmnt.pushKV("block", cmntItm["block"].As<string>());
+            oCmnt.pushKV("msg", cmntItm["msg"].As<string>());
+            oCmnt.pushKV("parentid", cmntItm["parentid"].As<string>());
+            oCmnt.pushKV("answerid", cmntItm["answerid"].As<string>());
+            oCmnt.pushKV("timeupd", cmntItm["timeupd"].As<string>());
+            oCmnt.pushKV("children", std::to_string(g_pocketdb->SelectCount(Query("Comments").Where("parentid", CondEq, cmntItm["id"].As<string>()))));
+
+            entry.pushKV("lastComment", oCmnt);
+        }
+	}
 
     return entry;
 }

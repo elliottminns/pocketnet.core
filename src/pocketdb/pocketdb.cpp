@@ -336,7 +336,7 @@ bool PocketDB::InitDB(std::string table)
     if (table == "Comment" || table == "ALL") {
         db->OpenNamespace("Comment", StorageOpts().Enabled().CreateIfMissing());
         db->AddIndex("Comment", {"txid", "hash", "string", IndexOpts().PK()});
-        db->AddIndex("Comment", {"otxid", "hash", "string", IndexOpts().PK()});
+        db->AddIndex("Comment", {"otxid", "hash", "string", IndexOpts()});
         db->AddIndex("Comment", {"last", "", "bool", IndexOpts()});
         db->AddIndex("Comment", {"postid", "tree", "string", IndexOpts()});
         db->AddIndex("Comment", {"address", "tree", "string", IndexOpts()});
