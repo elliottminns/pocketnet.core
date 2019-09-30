@@ -29,6 +29,12 @@ struct UserStateItem {
 
 	int complain_unspent;
 	int complain_spent;
+
+    int comment_unspent;
+	int comment_spent;
+
+    int comment_score_unspent;
+	int comment_score_spent;
     
 	int number_of_blocking;
 

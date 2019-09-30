@@ -79,9 +79,9 @@ public:
     void GetPostRating(std::string posttxid, int& sum, int& cnt, int& rep, int height);
 
     // Comment
-    bool UpdateCommentRating(std::string commentid, int sum, int cnt, int& rep);
+    bool UpdateCommentRating(std::string commentid, int up, int down, int& rep);
     bool UpdateCommentRating(std::string commentid, int height);
-    void GetCommentRating(std::string commentid, int& sum, int& cnt, int& rep, int height);
+    void GetCommentRating(std::string commentid, int& up, int& down, int& rep, int height);
 	
     // Returns sum of all unspent transactions for address
 	int64_t GetUserBalance(std::string _address, int height);

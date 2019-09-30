@@ -2077,8 +2077,8 @@ UniValue getPostData(reindexer::Item& itm, std::string address, int comments_ver
             oCmnt.pushKV("msg", cmntItm["msg"].As<string>());
             oCmnt.pushKV("parentid", cmntItm["parentid"].As<string>());
             oCmnt.pushKV("answerid", cmntItm["answerid"].As<string>());
-            oCmnt.pushKV("scoreSum", cmntItm["scoreSum"].As<string>());
-            oCmnt.pushKV("scoreCnt", cmntItm["scoreCnt"].As<string>());
+            oCmnt.pushKV("scoreUp", cmntItm["scoreUp"].As<string>());
+            oCmnt.pushKV("scoreDown", cmntItm["scoreDown"].As<string>());
             oCmnt.pushKV("reputation", cmntItm["reputation"].As<string>());
             oCmnt.pushKV("edit", cmntItm["otxid"].As<string>() != cmntItm["txid"].As<string>());
             oCmnt.pushKV("children", std::to_string(g_pocketdb->SelectCount(Query("Comment").Where("parentid", CondEq, cmntItm["otxid"].As<string>()).Where("last", CondEq, true))));

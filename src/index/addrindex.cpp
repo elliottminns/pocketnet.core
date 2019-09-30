@@ -296,8 +296,8 @@ bool AddrIndex::indexCommentRating(const CTransactionRef& tx,
 
     // Save rating for comment in any case
     if (commentRatings.find(commentid) == commentRatings.end()) commentRatings.insert(std::make_pair(commentid, std::make_pair(0, 0)));
-    commentRatings[commentid].first += scoreVal;
-    commentRatings[commentid].second += 1;
+    if (scoreVal > 0) commentRatings[commentid].first += 1;
+    else commentRatings[commentid].second += 1;
 
 
     // Modify reputation for comment
@@ -379,34 +379,34 @@ bool AddrIndex::computePostsRatings(CBlockIndex* pindex, std::map<std::string, s
 bool AddrIndex::computeCommentRatings(CBlockIndex* pindex, std::map<std::string, std::pair<int, int>>& commentRatings, std::map<std::string, int>& commentReputations)
 {
     for (auto& pr : commentRatings) {
-        int sum = 0;
-        int cnt = 0;
+        int up = 0;
+        int down = 0;
         int rep = 0;
 
         // First get existed ratings
         // Ratings without this connected index
-        g_pocketdb->GetCommentRating(pr.first, sum, cnt, rep, pindex->nHeight - 1);
+        g_pocketdb->GetCommentRating(pr.first, up, down, rep, pindex->nHeight - 1);
 
         if (commentReputations.find(pr.first) != commentReputations.end()) {
             rep += commentReputations[pr.first];
         }
 
         // Increment rating and count
-        sum += pr.second.first;
-        cnt += pr.second.second;
+        up += pr.second.first;
+        down += pr.second.second;
 
         // Create new item with this height - new accumulating rating
         reindexer::Item _itm_rating_new = g_pocketdb->DB()->NewItem("CommentRatings");
         _itm_rating_new["commentid"] = pr.first;
         _itm_rating_new["block"] = pindex->nHeight;
-        _itm_rating_new["scoreSum"] = sum;
-        _itm_rating_new["scoreCnt"] = cnt;
+        _itm_rating_new["scoreUp"] = up;
+        _itm_rating_new["scoreDown"] = down;
         _itm_rating_new["reputation"] = rep;
 
         if (!g_pocketdb->UpsertWithCommit("CommentRatings", _itm_rating_new).ok()) return false;
 
         // Update Comment rating
-        if (!g_pocketdb->UpdateCommentRating(pr.first, sum, cnt, rep)) return false;
+        if (!g_pocketdb->UpdateCommentRating(pr.first, up, down, rep)) return false;
     }
 
     return true;
@@ -429,7 +429,7 @@ bool AddrIndex::IndexBlock(const CBlock& block, CBlockIndex* pindex)
     std::map<std::string, int> postReputations;
     
     // Comment ratings map for this block
-    // <commentid, <sum, cnt>>
+    // <commentid, <up, down>>
     std::map<std::string, std::pair<int, int>> commentRatings;
 
     // Comment reputations map for this block

@@ -1341,6 +1341,16 @@ bool AntiBot::GetUserState(std::string _address, int64_t _time, UserStateItem& _
     _state.complain_spent = complainsCount;
     _state.complain_unspent = complainsLimit - complainsCount;
 
+    int commentsCount = getLimitsCount("Comment", _address, chainActive.Tip()->nTime);
+    int commentsLimit = getLimit(Comment, mode, chainActive.Height() + 1);
+    _state.comment_spent = commentsCount;
+    _state.comment_unspent = commentsLimit - commentsCount;
+
+    int commentScoresCount = getLimitsCount("CommentScores", _address, chainActive.Tip()->nTime);
+    int commentScoresLimit = getLimit(CommentScore, mode, chainActive.Height() + 1);
+    _state.comment_score_spent = commentScoresCount;
+    _state.comment_score_unspent = commentScoresLimit - commentScoresCount;
+
     int allow_reputation_blocking = GetActualLimit(Limit::threshold_reputation_blocking, chainActive.Height() + 1);
     _state.number_of_blocking = g_pocketdb->SelectCount(reindexer::Query("BlockingView").Where("address_to", CondEq, _address).Where("address_reputation", CondGe, allow_reputation_blocking));
 

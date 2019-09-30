@@ -345,8 +345,8 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("Comment", {"msg", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
         db->AddIndex("Comment", {"parentid", "tree", "string", IndexOpts()});
         db->AddIndex("Comment", {"answerid", "tree", "string", IndexOpts()});
-        db->AddIndex("Comment", {"scoreSum", "", "int", IndexOpts()});
-        db->AddIndex("Comment", {"scoreCnt", "", "int", IndexOpts()});
+        db->AddIndex("Comment", {"scoreUp", "", "int", IndexOpts()});
+        db->AddIndex("Comment", {"scoreDown", "", "int", IndexOpts()});
         db->AddIndex("Comment", {"reputation", "", "int", IndexOpts()});
         db->Commit("Comment");
     }
@@ -356,8 +356,8 @@ bool PocketDB::InitDB(std::string table)
         db->OpenNamespace("CommentRatings", StorageOpts().Enabled().CreateIfMissing());
         db->AddIndex("CommentRatings", {"block", "tree", "int", IndexOpts()});
         db->AddIndex("CommentRatings", {"commentid", "hash", "string", IndexOpts()});
-        db->AddIndex("CommentRatings", {"scoreSum", "", "int", IndexOpts()});
-        db->AddIndex("CommentRatings", {"scoreCnt", "", "int", IndexOpts()});
+        db->AddIndex("CommentRatings", {"scoreUp", "", "int", IndexOpts()});
+        db->AddIndex("CommentRatings", {"scoreDown", "", "int", IndexOpts()});
         db->AddIndex("CommentRatings", {"reputation", "", "int", IndexOpts()});
         db->AddIndex("CommentRatings", {"commentid+block", {"commentid", "block"}, "hash", "composite", IndexOpts().PK()});
         db->Commit("CommentRatings");
@@ -752,8 +752,8 @@ Error PocketDB::CommitLastItem(std::string table, Item& itm) {
     for (auto& it : all_res) {
         Item _itm = it.GetItem();
         _itm["last"] = false;
-        _itm["scoreSum"] = 0;
-        _itm["scoreCnt"] = 0;
+        _itm["scoreUp"] = 0;
+        _itm["scoreDown"] = 0;
         _itm["reputation"] = 0;
         err = UpsertWithCommit(table, _itm);
         if (!err.ok()) return err;
@@ -781,15 +781,15 @@ Error PocketDB::RestoreLastItem(std::string table, std::string txid, std::string
             last_item["last"] = true;
 
             // Restore rating
-            int sum = 0;
-            int cnt = 0;
+            int up = 0;
+            int down = 0;
             int rep = 0;
 
             // Warning! This method only for comments, not for posts or users
-            GetCommentRating(txid, sum, cnt, rep, height);
+            GetCommentRating(txid, up, down, rep, height);
 
-            last_item["scoreSum"] = sum;
-            last_item["scoreCnt"] = cnt;
+            last_item["scoreUp"] = up;
+            last_item["scoreDown"] = down;
             last_item["reputation"] = rep;
 
             err = UpsertWithCommit(table, last_item);
@@ -913,11 +913,11 @@ bool PocketDB::UpdatePostRating(std::string posttxid, int height)
 }
 
 
-void PocketDB::GetCommentRating(std::string commentid, int& sum, int& cnt, int& rep, int height)
+void PocketDB::GetCommentRating(std::string commentid, int& up, int& down, int& rep, int height)
 {
     // Set to default if rating for post not found
-    sum = 0;
-    cnt = 0;
+    up = 0;
+    down = 0;
     rep = 0;
 
     // Sorting by block desc - last accumulating rating
@@ -930,20 +930,20 @@ void PocketDB::GetCommentRating(std::string commentid, int& sum, int& cnt, int& 
             , _itm_rating_cur
         ).ok()
     ) {
-        sum = _itm_rating_cur["scoreSum"].As<int>();
-        cnt = _itm_rating_cur["scoreCnt"].As<int>();
+        up = _itm_rating_cur["scoreUp"].As<int>();
+        down = _itm_rating_cur["scoreDown"].As<int>();
         rep = _itm_rating_cur["reputation"].As<int>();
     }
 }
 
-bool PocketDB::UpdateCommentRating(std::string commentid, int sum, int cnt, int& rep)
+bool PocketDB::UpdateCommentRating(std::string commentid, int up, int down, int& rep)
 {
     reindexer::QueryResults commentRes;
     if (!db->Select(reindexer::Query("Comment", 0, 1).Where("otxid", CondEq, commentid).Where("last", CondEq, true), commentRes).ok()) return false;
     for (auto& p : commentRes) {
         reindexer::Item postItm(p.GetItem());
-        postItm["scoreSum"] = sum;
-        postItm["scoreCnt"] = cnt;
+        postItm["scoreUp"] = up;
+        postItm["scoreDown"] = down;
         postItm["reputation"] = rep;
         if (!UpsertWithCommit("Comment", postItm).ok()) return false;
     }
@@ -953,12 +953,11 @@ bool PocketDB::UpdateCommentRating(std::string commentid, int sum, int cnt, int&
 
 bool PocketDB::UpdateCommentRating(std::string commentid, int height)
 {
-    int sum = 0;
-    int cnt = 0;
+    int up = 0;
+    int down = 0;
     int rep = 0;
-    GetCommentRating(commentid, sum, cnt, rep, height);
-
-    return UpdateCommentRating(commentid, sum, cnt, rep);
+    GetCommentRating(commentid, up, down, rep, height);
+    return UpdateCommentRating(commentid, up, down, rep);
 }
 
 
