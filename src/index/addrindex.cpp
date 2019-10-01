@@ -1029,13 +1029,13 @@ bool AddrIndex::GetRecomendedSubscriptions(std::string _address, int count, std:
                     for (auto it : queryResUserReputations) {
                         reindexer::Item UserReputations(it.GetItem());
                         std::string _addr = UserReputations["address"].As<string>();
-                        int scoreCnt = UserReputations["scoreCnt"].As<int>();
+                        double reputation = UserReputations["reputation"].As<double>();
 
-                        // Get SUM of all "scoreCnt" in result - freqInCorpus
-                        freqInCorpus = freqInCorpus + scoreCnt;
+                        // Get "reputation" in result - freqInCorpus
+                        freqInCorpus = freqInCorpus + reputation;
 
                         // UserReputations to map
-                        popularSubscribtionsRate.emplace(_addr, scoreCnt);
+                        popularSubscribtionsRate.emplace(_addr, reputation);
                     }
                 }
 

@@ -1078,7 +1078,7 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
 
         // Score to self comment
         if (_comment_address == _address) {
-            result = ANTIBOTRESULT::SelfScore;
+            result = ANTIBOTRESULT::SelfCommentScore;
             return false;
         }
     }

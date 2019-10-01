@@ -96,7 +96,8 @@ enum ANTIBOTRESULT {
     Size = 33,
     InvalidParentComment = 34,
     InvalidAnswerComment = 35,
-    DoubleCommentEdit = 37
+    DoubleCommentEdit = 37,
+    SelfCommentScore = 38
 
 };
 //-----------------------------------------------------
