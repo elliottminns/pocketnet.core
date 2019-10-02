@@ -41,6 +41,31 @@ struct UserStateItem {
 	UserStateItem(std::string _address) {
 		address = _address;
 	}
+
+    UniValue Serialize() {
+        UniValue result(UniValue::VOBJ);
+
+        result.pushKV("address", address);
+        result.pushKV("user_reg_date", user_registration_date);
+        result.pushKV("addr_reg_date", address_registration_date);
+        result.pushKV("reputation", reputation);
+        result.pushKV("balance", balance);
+        result.pushKV("trial", trial);
+        result.pushKV("post_unspent", post_unspent);
+        result.pushKV("post_spent", post_spent);
+        result.pushKV("score_unspent", score_unspent);
+        result.pushKV("score_spent", score_spent);
+        result.pushKV("complain_unspent", complain_unspent);
+        result.pushKV("complain_spent", complain_spent);
+        result.pushKV("number_of_blocking", number_of_blocking);
+
+        result.pushKV("comment_spent", comment_spent);
+        result.pushKV("comment_unspent", comment_unspent);
+        result.pushKV("comment_score_spent", comment_score_spent);
+        result.pushKV("comment_score_unspent", comment_score_unspent);
+
+        return result;
+    }
 };
 //-----------------------------------------------------
 enum CHECKTYPE {

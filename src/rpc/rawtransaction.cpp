@@ -3058,29 +3058,13 @@ UniValue getuserstate(const JSONRPCRequest& request)
         time = request.params[1].get_int64();
     }
 
-
     // Get transaction ids from UTXO index
     UserStateItem userStateItm(address);
     if (!g_antibot->GetUserState(address, time, userStateItm)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error get from address index");
     }
-    //-------------------------
-    UniValue result(UniValue::VOBJ);
-    result.pushKV("address", address);
-    result.pushKV("user_reg_date", userStateItm.user_registration_date);
-    result.pushKV("addr_reg_date", userStateItm.address_registration_date);
-    result.pushKV("reputation", userStateItm.reputation);
-    result.pushKV("balance", userStateItm.balance);
-    result.pushKV("trial", userStateItm.trial);
-    result.pushKV("post_unspent", userStateItm.post_unspent);
-    result.pushKV("post_spent", userStateItm.post_spent);
-    result.pushKV("score_unspent", userStateItm.score_unspent);
-    result.pushKV("score_spent", userStateItm.score_spent);
-    result.pushKV("complain_unspent", userStateItm.complain_unspent);
-    result.pushKV("complain_spent", userStateItm.complain_spent);
-    result.pushKV("number_of_blocking", userStateItm.number_of_blocking);
-    //-------------------------
-    return result;
+    
+    return userStateItm.Serialize();
 }
 
 UniValue gettime(const JSONRPCRequest& request)
