@@ -39,8 +39,7 @@ enum Limit {
     full_comment_edit_limit,
     full_comment_score_limit,
     comment_size_limit,
-    edit_comment_timeout
-    scores_one_to_one_depth,
+    edit_comment_timeout,
     scores_depth_modify_reputation
 };
 
