@@ -99,6 +99,7 @@ void FillLimits(const CChainParams& params) {
 
     // Forks
     int64_t fork_20190830 = 292800;
+    int64_t fork_20190920 = 322700;
 
     // threshold_reputation
     std::map<int, int64_t> _threshold_reputation;
@@ -213,6 +214,7 @@ void FillLimits(const CChainParams& params) {
     _scores_one_to_one_depth.insert({ 0, 99999 });
     _scores_one_to_one_depth.insert({ 225000, 1*24*3600 });
     _scores_one_to_one_depth.insert({ fork_20190830, 7*24*3600 });
+    _scores_one_to_one_depth.insert({ fork_20190920, 2*24*3600 });
     Limits.insert(std::make_pair(Limit::scores_one_to_one_depth, _scores_one_to_one_depth));
 
     // trial_comment_limit
@@ -255,6 +257,11 @@ void FillLimits(const CChainParams& params) {
     _edit_comment_timeout.insert({ 0, 86400 });
     Limits.insert(std::make_pair(Limit::edit_comment_timeout, _edit_comment_timeout));
 
+    // scores_depth_modify_reputation
+    std::map<int, int64_t> _scores_depth_modify_reputation;
+    _scores_depth_modify_reputation.insert({ 0, 336*24*3600 });
+    _scores_depth_modify_reputation.insert({ fork_20190920, 30*24*3600 });
+    Limits.insert(std::make_pair(Limit::scores_depth_modify_reputation, _scores_depth_modify_reputation));
 };
 
 // Get actual limit for current height
