@@ -649,66 +649,46 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
             }
         }
     }
-	//-------------------------------------------
-    bool ret = false;
+    
 	// Create transactions for all winners
-    {
-        // Users with scores by post
-        if (vLotteryPost.size() > 0 && vLotteryPost.size() <= 25) {
-            totalAmount = nCredit * 0.5;
-            CAmount ratingReward = totalAmount;
+    totalAmount = 0;
+    bool ret = false;
 
-            int current = 0;
-            const int rewardsCount = vLotteryPost.size();
-            CAmount rewardsPool = ratingReward;
-            CAmount reward = ratingReward / rewardsCount;
+    ret = GenerateOuts(nCredit, results, totalAmount, vLotteryPost, OP_WINNER_POST) || ret;
+    ret = GenerateOuts(nCredit, results, totalAmount, vLotteryComment, OP_WINNER_COMMENT) || ret;
 
-            for (auto addr : boost::adaptors::reverse(vLotteryPost)) {
-                CAmount re;
-                if (++current == rewardsCount) {
-                    re = rewardsPool;
-                }
-                else {
-                    rewardsPool = rewardsPool - reward;
-                    re = reward;
-                }
+    return ret;
+}
 
-                CTxDestination dest = DecodeDestination(addr);
-                CScript scriptPubKey = GetScriptForDestination(dest);
-                results.push_back(CTxOut(re, scriptPubKey)); // send to ratings
+bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalAmount, std::vector<std::string> winners, opcodetype op_code_type) {
+    if (winners.size() > 0 && winners.size() <= 25) {
+        CAmount ratingReward = nCredit * 0.5;
+        if (op_code_type == OP_WINNER_COMMENT) ratingReward = ratingReward / 10;
+        totalAmount += ratingReward;
+
+        int current = 0;
+        const int rewardsCount = winners.size();
+        CAmount rewardsPool = ratingReward;
+        CAmount reward = ratingReward / rewardsCount;
+
+        for (auto addr : boost::adaptors::reverse(winners)) {
+            CAmount re;
+            if (++current == rewardsCount) {
+                re = rewardsPool;
+            }
+            else {
+                rewardsPool = rewardsPool - reward;
+                re = reward;
             }
 
-            ret = true;
+            CTxDestination dest = DecodeDestination(addr);
+            CScript scriptPubKey = GetScriptForDestination(dest);
+            scriptPubKey << op_code_type;
+            results.push_back(CTxOut(re, scriptPubKey)); // send to ratings
         }
 
-        // Users with scores by comment
-        if (vLotteryComment.size() > 0 && vLotteryComment.size() <= 25) {
-            totalAmount = nCredit * 0.5 / 10;
-            CAmount ratingReward = totalAmount;
-
-            int current = 0;
-            const int rewardsCount = vLotteryComment.size();
-            CAmount rewardsPool = ratingReward;
-            CAmount reward = ratingReward / rewardsCount;
-
-            for (auto addr : boost::adaptors::reverse(vLotteryComment)) {
-                CAmount re;
-                if (++current == rewardsCount) {
-                    re = rewardsPool;
-                }
-                else {
-                    rewardsPool = rewardsPool - reward;
-                    re = reward;
-                }
-
-                CTxDestination dest = DecodeDestination(addr);
-                CScript scriptPubKey = GetScriptForDestination(dest);
-                results.push_back(CTxOut(re, scriptPubKey)); // send to ratings
-            }
-
-            ret = true;
-        }
+        return true;
     }
-	//-------------------------------------------
-	return ret;
+
+    return false;
 }
