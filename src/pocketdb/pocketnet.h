@@ -63,7 +63,7 @@ int64_t GetActualLimit(Limit type, int height);
 #define OR_COMMENT "636f6d6d656e74"
 #define OR_COMMENT_EDIT "636f6d6d656e7445646974"
 #define OR_COMMENT_DELETE "636f6d6d656e7444656c657465"
-#define OR_COMMENT_SCORE "636f6d6d656e7453636f7265"
+#define OR_COMMENT_SCORE "6353636f7265"
 
 
 // Check transaction type is pocketnet

@@ -6,7 +6,7 @@ UniValue getcommentsV2(const JSONRPCRequest& request)
 {
     if (request.fHelp)
         throw std::runtime_error(
-            "getcomments (\"postid\", \"parentid\", [\"commend_id\",\"commend_id\",...])\n"
+            "getcomments (\"postid\", \"parentid\", \"address\", [\"commend_id\",\"commend_id\",...])\n"
             "\nGet Pocketnet comments.\n"
         );
 
@@ -21,11 +21,16 @@ UniValue getcommentsV2(const JSONRPCRequest& request)
     if (request.params.size() > 1) {
         parentid = request.params[1].get_str();
     }
+
+    std::string address = "";
+    if (request.params.size() > 2) {
+        address = request.params[2].get_str();
+    }
     
     vector<string> cmnids;
-    if (request.params.size() > 2) {
-        if (request.params[2].isArray()) {
-            UniValue cmntid = request.params[2].get_array();
+    if (request.params.size() > 3) {
+        if (request.params[3].isArray()) {
+            UniValue cmntid = request.params[3].get_array();
             for (unsigned int id = 0; id < cmntid.size(); id++) {
                 cmnids.push_back(cmntid[id].get_str());
             }
@@ -34,27 +39,39 @@ UniValue getcommentsV2(const JSONRPCRequest& request)
         }
     }
     
+    // For joined tables
+    // it.GetJoined()[1][0]
+    // [1] - table
+    // [0] - item in table
     reindexer::QueryResults commRes;
     if (cmnids.size()>0)
         g_pocketdb->Select(
             Query("Comment")
-            .Where("otxid", CondSet, cmnids)
-            .Where("last", CondEq, true)
-            .InnerJoin("otxid", "txid", CondEq, Query("Comment").Where("txid", CondSet, cmnids).Limit(1))
+                .Where("otxid", CondSet, cmnids)
+                .Where("last", CondEq, true)
+                .InnerJoin("otxid", "txid", CondEq, Query("Comment").Where("txid", CondSet, cmnids).Limit(1))
+                .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondSet, address).Limit(1))
         ,commRes);
     else 
         g_pocketdb->Select(
             Query("Comment")
-            .Where("postid", CondEq, postid)
-            .Where("parentid", CondEq, parentid)
-            .Where("last", CondEq, true)
-            .InnerJoin("otxid", "txid", CondEq, Query("Comment").Limit(1))
+                .Where("postid", CondEq, postid)
+                .Where("parentid", CondEq, parentid)
+                .Where("last", CondEq, true)
+                .InnerJoin("otxid", "txid", CondEq, Query("Comment").Limit(1))
+                .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondSet, address).Limit(1))
         ,commRes);
 
     UniValue aResult(UniValue::VARR);
     for (auto& it : commRes) {
         reindexer::Item cmntItm = it.GetItem();
         reindexer::Item ocmntItm = it.GetJoined()[0][0].GetItem();
+        
+        int myScore = 0;
+        if (it.GetJoined().size() > 1 &&it.GetJoined()[1].Count() > 0) {
+            reindexer::Item ocmntScoreItm = it.GetJoined()[1][0].GetItem();
+            myScore = ocmntScoreItm["value"].As<int>();
+        }
 
         UniValue oCmnt(UniValue::VOBJ);
         oCmnt.pushKV("id", cmntItm["otxid"].As<string>());
@@ -70,6 +87,8 @@ UniValue getcommentsV2(const JSONRPCRequest& request)
         oCmnt.pushKV("scoreDown", cmntItm["scoreDown"].As<string>());
         oCmnt.pushKV("reputation", cmntItm["reputation"].As<string>());
         oCmnt.pushKV("edit", cmntItm["otxid"].As<string>() != cmntItm["txid"].As<string>());
+        oCmnt.pushKV("deleted", cmntItm["msg"].As<string>() == "");
+        oCmnt.pushKV("myScore", myScore);
         oCmnt.pushKV("children", std::to_string(g_pocketdb->SelectCount(Query("Comment").Where("parentid", CondEq, cmntItm["otxid"].As<string>()).Where("last", CondEq, true))));
 
         aResult.push_back(oCmnt);
@@ -90,19 +109,31 @@ UniValue getlastcommentsV2(const JSONRPCRequest& request)
         ParseInt32(request.params[0].get_str(), &resultCount);
     }
 
+    std::string address = "";
+    if (request.params.size() > 1) {
+        address = request.params[1].get_str();
+    }
+
     reindexer::QueryResults commRes;
     g_pocketdb->Select(
         Query("Comment")
-        .Where("last", CondEq, true)
-        .Sort("time", true)
-        .Limit(resultCount)
-        .InnerJoin("otxid", "txid", CondEq, Query("Comment").Limit(1))
+            .Where("last", CondEq, true)
+            .Sort("time", true)
+            .Limit(resultCount)
+            .InnerJoin("otxid", "txid", CondEq, Query("Comment").Limit(1))
+            .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondSet, address).Limit(1))
     ,commRes);
 
     UniValue aResult(UniValue::VARR);
     for (auto& it : commRes) {
         reindexer::Item cmntItm = it.GetItem();
         reindexer::Item ocmntItm = it.GetJoined()[0][0].GetItem();
+
+        int myScore = 0;
+        if (it.GetJoined().size() > 1 && it.GetJoined()[1].Count() > 0) {
+            reindexer::Item ocmntScoreItm = it.GetJoined()[1][0].GetItem();
+            myScore = ocmntScoreItm["value"].As<int>();
+        }
 
         UniValue oCmnt(UniValue::VOBJ);
         oCmnt.pushKV("id", cmntItm["otxid"].As<string>());
@@ -118,6 +149,8 @@ UniValue getlastcommentsV2(const JSONRPCRequest& request)
         oCmnt.pushKV("scoreDown", cmntItm["scoreDown"].As<string>());
         oCmnt.pushKV("reputation", cmntItm["reputation"].As<string>());
         oCmnt.pushKV("edit", cmntItm["otxid"].As<string>() != cmntItm["txid"].As<string>());
+        oCmnt.pushKV("deleted", cmntItm["msg"].As<string>() == "");
+        oCmnt.pushKV("myScore", myScore);
 
         aResult.push_back(oCmnt);
     }
@@ -127,8 +160,8 @@ UniValue getlastcommentsV2(const JSONRPCRequest& request)
 
 static const CRPCCommand commands[] =
     {
-        {"pocketnetrpc",   "getlastcomments2",    &getlastcommentsV2,      {"count"}},
-        {"pocketnetrpc",   "getcomments2",        &getcommentsV2,          {"postid", "parentid"}},
+        {"pocketnetrpc",   "getlastcomments2",    &getlastcommentsV2,      {"count","address"}},
+        {"pocketnetrpc",   "getcomments2",        &getcommentsV2,          {"postid","parentid","address","ids"}},
 };
 
 void RegisterPocketnetRPCCommands(CRPCTable& t)

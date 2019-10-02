@@ -1939,7 +1939,7 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
         new_rtx.pTransaction["parentid"] = request.params[1]["parentid"].get_str();
         new_rtx.pTransaction["answerid"] = request.params[1]["answerid"].get_str();
 
-    } else if (mesType == "commentScore") {
+    } else if (mesType == "cScore") {
 
         bool valid = true;
         valid = valid & request.params[1].exists("commentid");
@@ -2060,6 +2060,7 @@ UniValue getPostData(reindexer::Item& itm, std::string address, int comments_ver
                 .Where("last", CondEq, true)
                 .Sort("time", true)
                 .InnerJoin("otxid", "txid", CondEq, Query("Comment").Limit(1))
+                .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondSet, address).Limit(1))
             ,cmntRes);
         
         if (totalComments > 0 && cmntRes.Count() > 0) {
@@ -2067,6 +2068,12 @@ UniValue getPostData(reindexer::Item& itm, std::string address, int comments_ver
 
             reindexer::Item cmntItm = cmntRes[0].GetItem();
             reindexer::Item ocmntItm = cmntRes[0].GetJoined()[0][0].GetItem();
+            
+            int myScore = 0;
+            if (cmntRes[0].GetJoined().size() > 1 && cmntRes[0].GetJoined()[1].Count() > 0) {
+                reindexer::Item ocmntScoreItm = cmntRes[0].GetJoined()[1][0].GetItem();
+                myScore = ocmntScoreItm["value"].As<int>();
+            }
 
             oCmnt.pushKV("id", cmntItm["otxid"].As<string>());
             oCmnt.pushKV("postid", cmntItm["postid"].As<string>());
@@ -2081,6 +2088,8 @@ UniValue getPostData(reindexer::Item& itm, std::string address, int comments_ver
             oCmnt.pushKV("scoreDown", cmntItm["scoreDown"].As<string>());
             oCmnt.pushKV("reputation", cmntItm["reputation"].As<string>());
             oCmnt.pushKV("edit", cmntItm["otxid"].As<string>() != cmntItm["txid"].As<string>());
+            oCmnt.pushKV("deleted", cmntItm["msg"].As<string>() == "");
+            oCmnt.pushKV("myScore", myScore);
             oCmnt.pushKV("children", std::to_string(g_pocketdb->SelectCount(Query("Comment").Where("parentid", CondEq, cmntItm["otxid"].As<string>()).Where("last", CondEq, true))));
 
             entry.pushKV("lastComment", oCmnt);

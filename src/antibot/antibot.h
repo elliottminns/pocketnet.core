@@ -97,8 +97,10 @@ enum ANTIBOTRESULT {
     InvalidParentComment = 34,
     InvalidAnswerComment = 35,
     DoubleCommentEdit = 37,
-    SelfCommentScore = 38
-
+    SelfCommentScore = 38,
+    DoubleCommentDelete = 39,
+    DoubleCommentScore = 40,
+    OpReturnFailed = 41
 };
 //-----------------------------------------------------
 struct BlockVTX {

@@ -312,7 +312,7 @@ bool AddrIndex::indexCommentRating(const CTransactionRef& tx,
 
         // Comment reputation        
         if (commentReputations.find(commentid) == commentReputations.end()) commentReputations.insert(std::make_pair(commentid, 0));
-        commentReputations[commentid] += scoreVal / 10; // Reputation equals -0.1 or 0.1
+        commentReputations[commentid] += scoreVal;
 
     }
 
@@ -468,10 +468,6 @@ bool AddrIndex::IndexBlock(const CBlock& block, CBlockIndex* pindex)
             LogPrintf("(AddrIndex::IndexBlock) indexPost - tx (%s)\n", tx->GetHash().GetHex());
             return false;
         }
-
-        // Indexing tags
-        // TODO (brangr): Temporaly remove tags
-        // if (!indexTags(tx, pindex)) return false;
     }
 
     // Save ratings for users

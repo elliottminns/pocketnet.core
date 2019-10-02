@@ -417,7 +417,7 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
     	std::string _score_itm_hex = HexStr(_score_itm_val.begin(), _score_itm_val.end());
 
     	if (_op_return_hex != _score_itm_hex) {
-    		result = ANTIBOTRESULT::Failed;
+    		result = ANTIBOTRESULT::OpReturnFailed;
     		return false;
     	}
     }
@@ -901,7 +901,7 @@ bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMe
         return false;
     }
 
-    // Parent comment
+    // Answer comment
     if (_answerid != _original_comment_itm["answerid"].As<string>()) {
         result = ANTIBOTRESULT::InvalidAnswerComment;
         return false;
@@ -998,25 +998,23 @@ bool AntiBot::check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool check
         return false;
     }
 
-    // Parent comment
+    // Answer comment
     if (_answerid != _original_comment_itm["answerid"].As<string>()) {
         result = ANTIBOTRESULT::InvalidAnswerComment;
         return false;
     }
 
-    // TODO (brangr): Complete......
-    
     // Double delete in block denied
     if (blockVtx.Exists("Comment")) {
         for (auto& mtx : blockVtx.Data["Comment"]) {
             if (mtx["txid"].get_str() != _txid && mtx["otxid"].get_str() == _otxid) {
-                result = ANTIBOTRESULT::DoubleCommentEdit;
+                result = ANTIBOTRESULT::DoubleCommentDelete;
                 return false;
             }
         }
     }
 
-    // Double edit in mempool denied
+    // Double delete in mempool denied
     if (checkMempool) {
         reindexer::QueryResults res;
         if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Comment").Not().Where("txid", CondEq, _txid), res).ok()) {
@@ -1027,24 +1025,11 @@ bool AntiBot::check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool check
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Comment");
                 if (t_itm.FromJSON(t_src).ok()) {
                     if (t_itm["otxid"].As<string>() == _otxid) {
-                        result = ANTIBOTRESULT::DoubleCommentEdit;
+                        result = ANTIBOTRESULT::DoubleCommentDelete;
                         return false;
                     }
                 }
             }
-        }
-    }
-
-    // Check limit
-    {
-        size_t edit_count = g_pocketdb->SelectCount(Query("Comment").Where("otxid", CondEq, _otxid));
-        
-        ABMODE mode;
-        getMode(_address, mode, chainActive.Height() + 1);
-        int limit = getLimit(CommentEdit, mode, chainActive.Height() + 1);
-        if (edit_count >= limit) {
-            result = ANTIBOTRESULT::CommentEditLimit;
-            return false;
         }
     }
 
@@ -1111,7 +1096,7 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
         .Where("commentid", CondEq, _comment_id),
         doubleScoreItm
     ).ok()) {
-        result = ANTIBOTRESULT::DoubleScore;
+        result = ANTIBOTRESULT::DoubleCommentScore;
         return false;
     }
 
@@ -1144,7 +1129,7 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
                             scoresCount += 1;
                         }
                         if (t_itm["address"].As<string>() == _address && t_itm["commentid"].As<string>() == _comment_id) {
-                            result = ANTIBOTRESULT::DoubleScore;
+                            result = ANTIBOTRESULT::DoubleCommentScore;
                             return false;
                         }
                     }
@@ -1160,7 +1145,7 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
                 }
 
                 if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["commentid"].get_str() == _comment_id) {
-                    result = ANTIBOTRESULT::DoubleScore;
+                    result = ANTIBOTRESULT::DoubleCommentScore;
                     return false;
                 }
             }
@@ -1189,7 +1174,7 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
     	std::string _score_itm_hex = HexStr(_score_itm_val.begin(), _score_itm_val.end());
 
     	if (_op_return_hex != _score_itm_hex) {
-    		result = ANTIBOTRESULT::Failed;
+    		result = ANTIBOTRESULT::OpReturnFailed;
     		return false;
     	}
     }
