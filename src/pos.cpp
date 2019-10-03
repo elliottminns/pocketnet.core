@@ -683,7 +683,8 @@ bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalA
 
             CTxDestination dest = DecodeDestination(addr);
             CScript scriptPubKey = GetScriptForDestination(dest);
-            scriptPubKey << op_code_type;
+            // TODO (brangr): Include with fork
+            // scriptPubKey << op_code_type;
             results.push_back(CTxOut(re, scriptPubKey)); // send to ratings
         }
 

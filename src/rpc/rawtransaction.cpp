@@ -2593,7 +2593,6 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
 
     reindexer::QueryResults subscribers;
     g_pocketdb->DB()->Select(reindexer::Query("SubscribesView").Where("address_to", CondEq, address).Where("block", CondGt, blockNumber).Sort("time", true).Limit(cntResult), subscribers);
-
     for (auto it : subscribers) {
         reindexer::Item itm(it.GetItem());
         UniValue msg(UniValue::VOBJ);
@@ -2609,7 +2608,6 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
 
     reindexer::QueryResults scores;
     g_pocketdb->DB()->Select(reindexer::Query("Scores").Where("block", CondGt, blockNumber).InnerJoin("posttxid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, address)).Sort("time", true).Limit(cntResult), scores);
-
     for (auto it : scores) {
         reindexer::Item itm(it.GetItem());
         UniValue msg(UniValue::VOBJ);
@@ -2621,13 +2619,33 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
         msg.pushKV("upvoteVal", itm["value"].As<int>());
         msg.pushKV("mesType", "upvoteShare");
         msg.pushKV("nblock", itm["block"].As<int>());
+        a.push_back(msg);
+    }
 
+    reindexer::QueryResults commentScores;
+    g_pocketdb->DB()->Select(
+        reindexer::Query("CommentScores")
+            .Where("block", CondGt, blockNumber)
+            .InnerJoin("commentid", "txid", CondEq, reindexer::Query("Comment").Where("address", CondEq, address))
+            .Sort("time", true)
+            .Limit(cntResult)
+    ,commentScores);
+    for (auto it : commentScores) {
+        reindexer::Item itm(it.GetItem());
+        UniValue msg(UniValue::VOBJ);
+        msg.pushKV("addr", address);
+        msg.pushKV("addrFrom", itm["address"].As<string>());
+        msg.pushKV("msg", "event");
+        msg.pushKV("txid", itm["txid"].As<string>());
+        msg.pushKV("commentid", itm["commentid"].As<string>());
+        msg.pushKV("upvoteVal", itm["value"].As<int>());
+        msg.pushKV("mesType", "cScore");
+        msg.pushKV("nblock", itm["block"].As<int>());
         a.push_back(msg);
     }
 
     reindexer::QueryResults transactions;
     g_pocketdb->DB()->Select(reindexer::Query("UTXO").Where("address", CondEq, address).Where("block", CondGt, blockNumber).Sort("time", true).Limit(cntResult), transactions);
-
     for (auto it : transactions) {
         reindexer::Item itm(it.GetItem());
         UniValue msg(UniValue::VOBJ);
@@ -2716,21 +2734,33 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
             }
         }
     } else {
+
         vector<string> answerpostids;
         reindexer::QueryResults commentsAnswer;
-        g_pocketdb->DB()->Select(reindexer::Query("Comment").Where("block", CondGt, blockNumber).Where("last", CondEq, true)
-            .InnerJoin("answerid", "otxid", CondEq, reindexer::Query("Comment").Where("address", CondEq, address).Where("last", CondEq, true)).Sort("time", true).Limit(cntResult), commentsAnswer);
+        g_pocketdb->DB()->Select(
+            reindexer::Query("Comment")
+                .Where("block", CondGt, blockNumber)
+                .Where("last", CondEq, true)
+                .InnerJoin("answerid", "otxid", CondEq, reindexer::Query("Comment").Where("address", CondEq, address).Where("last", CondEq, true))
+                .Sort("time", true)
+                .Limit(cntResult)
+        ,commentsAnswer);
+
         for (auto it : commentsAnswer) {
             reindexer::Item itm(it.GetItem());
             if (address != itm["address"].As<string>()) {
+                if (itm["msg"].As<string>() == "") continue;
+                if (itm["otxid"].As<string>() != itm["txid"].As<string>()) continue;
+
                 UniValue msg(UniValue::VOBJ);
                 msg.pushKV("addr", address);
                 msg.pushKV("addrFrom", itm["address"].As<string>());
                 msg.pushKV("nblock", itm["block"].As<int>());
                 msg.pushKV("msg", "comment");
                 msg.pushKV("mesType", "answer");
-                msg.pushKV("commentid", itm["otxid"].As<string>());
+                msg.pushKV("txid", itm["otxid"].As<string>());
                 msg.pushKV("posttxid", itm["postid"].As<string>());
+                msg.pushKV("reason", "answer");
                 if (itm["parentid"].As<string>() != "") msg.pushKV("parentid", itm["parentid"].As<string>());
                 if (itm["answerid"].As<string>() != "") msg.pushKV("answerid", itm["answerid"].As<string>());
 
@@ -2743,17 +2773,22 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
         reindexer::QueryResults commentsPost;
         g_pocketdb->DB()->Select(reindexer::Query("Comment").Where("block", CondGt, blockNumber).Where("last", CondEq, true)
             .InnerJoin("postid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, address).Not().Where("txid", CondSet, answerpostids)).Sort("time", true).Limit(cntResult), commentsPost);
+
         for (auto it : commentsPost) {
             reindexer::Item itm(it.GetItem());
             if (address != itm["address"].As<string>()) {
+                if (itm["msg"].As<string>() == "") continue;
+                if (itm["otxid"].As<string>() != itm["txid"].As<string>()) continue;
+
                 UniValue msg(UniValue::VOBJ);
                 msg.pushKV("addr", address);
                 msg.pushKV("addrFrom", itm["address"].As<string>());
                 msg.pushKV("nblock", itm["block"].As<int>());
                 msg.pushKV("msg", "comment");
                 msg.pushKV("mesType", "post");
-                msg.pushKV("commentid", itm["otxid"].As<string>());
+                msg.pushKV("txid", itm["otxid"].As<string>());
                 msg.pushKV("posttxid", itm["postid"].As<string>());
+                msg.pushKV("reason", "post");
                 if (itm["parentid"].As<string>() != "") msg.pushKV("parentid", itm["parentid"].As<string>());
                 if (itm["answerid"].As<string>() != "") msg.pushKV("answerid", itm["answerid"].As<string>());
 

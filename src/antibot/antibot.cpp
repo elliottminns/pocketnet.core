@@ -20,7 +20,7 @@ bool vectorFind(std::vector<std::string>& V, std::string f)
     return std::find(V.begin(), V.end(), f) != V.end();
 }
 
-void AntiBot::getMode(std::string _address, ABMODE &mode, int &reputation, int64_t &balance, int height) {
+void AntiBot::getMode(std::string _address, ABMODE &mode, double &reputation, int64_t &balance, int height) {
     reputation = g_pocketdb->GetUserReputation(_address, height - 1);
     balance = g_pocketdb->GetUserBalance(_address, height);
     if (reputation >= GetActualLimit(Limit::threshold_reputation, height) || balance >= GetActualLimit(Limit::threshold_balance, height))
@@ -30,7 +30,7 @@ void AntiBot::getMode(std::string _address, ABMODE &mode, int &reputation, int64
 }
 
 void AntiBot::getMode(std::string _address, ABMODE &mode, int height) {
-    int reputation = 0;
+    double reputation = 0;
     int64_t balance = 0;
     getMode(_address, mode, reputation, balance, height);
 
@@ -484,7 +484,7 @@ bool AntiBot::check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
     }
 
     ABMODE mode;
-    int reputation = 0;
+    double reputation = 0;
     int64_t balance = 0;
     getMode(_address, mode, reputation, balance, chainActive.Height() + 1);
     if (reputation < GetActualLimit(Limit::threshold_reputation_complains, chainActive.Height() + 1)) {
@@ -1303,7 +1303,7 @@ bool AntiBot::GetUserState(std::string _address, int64_t _time, UserStateItem& _
     _state.address_registration_date = g_addrindex->GetAddressRegistrationDate(_address);
 
     ABMODE mode;
-    int reputation = 0;
+    double reputation = 0;
     int64_t balance = 0;
     getMode(_address, mode, reputation, balance, chainActive.Height() + 1);
 
