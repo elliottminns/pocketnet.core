@@ -3900,9 +3900,9 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
 			valid = valid && (vout == txnRef);
 
 			if (!valid) {
-				printf("%s\n", vout.ToString().c_str());
-				printf("%s\n", txnRef.ToString().c_str());
-				printf("NOT VALID\n");
+				LogPrintf("%s\n", vout.ToString().c_str());
+				LogPrintf("%s\n", txnRef.ToString().c_str());
+				LogPrintf("NOT VALID\n");
 			}
 		}
 
@@ -4172,8 +4172,9 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
 			pindex = miSelf->second;
 			if (ppindex)
 				*ppindex = pindex;
-			if (pindex->nStatus & BLOCK_FAILED_MASK)
+			if (pindex->nStatus & BLOCK_FAILED_MASK) {
 				return state.Invalid(error("%s: block %s is marked invalid", __func__, hash.ToString()), 0, "duplicate");
+            }
 			return true;
 		}
 

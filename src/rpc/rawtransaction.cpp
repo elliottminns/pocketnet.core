@@ -2587,6 +2587,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
         UniValue msg(UniValue::VOBJ);
         msg.pushKV("msg", "sharepocketnet");
         msg.pushKV("txid", itm["txid"].As<string>());
+        msg.pushKV("time", itm["time"].As<string>());
         msg.pushKV("nblock", itm["block"].As<int>());
         a.push_back(msg);
     }
@@ -2600,6 +2601,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
         msg.pushKV("addrFrom", itm["address"].As<string>());
         msg.pushKV("msg", "event");
         msg.pushKV("txid", itm["txid"].As<string>());
+        msg.pushKV("time", itm["time"].As<string>());
         msg.pushKV("mesType", "subscribe");
         msg.pushKV("nblock", itm["block"].As<int>());
 
@@ -2615,6 +2617,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
         msg.pushKV("addrFrom", itm["address"].As<string>());
         msg.pushKV("msg", "event");
         msg.pushKV("txid", itm["txid"].As<string>());
+        msg.pushKV("time", itm["time"].As<string>());
         msg.pushKV("posttxid", itm["posttxid"].As<string>());
         msg.pushKV("upvoteVal", itm["value"].As<int>());
         msg.pushKV("mesType", "upvoteShare");
@@ -2637,6 +2640,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
         msg.pushKV("addrFrom", itm["address"].As<string>());
         msg.pushKV("msg", "event");
         msg.pushKV("txid", itm["txid"].As<string>());
+        msg.pushKV("time", itm["time"].As<string>());
         msg.pushKV("commentid", itm["commentid"].As<string>());
         msg.pushKV("upvoteVal", itm["value"].As<int>());
         msg.pushKV("mesType", "cScore");
@@ -2652,6 +2656,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
         msg.pushKV("addr", itm["address"].As<string>());
         msg.pushKV("msg", "transaction");
         msg.pushKV("txid", itm["txid"].As<string>());
+        msg.pushKV("time", itm["time"].As<string>());
         msg.pushKV("amount", itm["amount"].As<int64_t>());
         msg.pushKV("nblock", itm["block"].As<int>());
 
@@ -2705,6 +2710,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
                 msg.pushKV("mesType", "answer");
                 msg.pushKV("commentid", itm["id"].As<string>());
                 msg.pushKV("posttxid", itm["postid"].As<string>());
+                msg.pushKV("time", itm["time"].As<string>());
                 if (itm["parentid"].As<string>() != "") msg.pushKV("parentid", itm["parentid"].As<string>());
                 if (itm["answerid"].As<string>() != "") msg.pushKV("answerid", itm["answerid"].As<string>());
 
@@ -2727,6 +2733,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
                 msg.pushKV("mesType", "post");
                 msg.pushKV("commentid", itm["id"].As<string>());
                 msg.pushKV("posttxid", itm["postid"].As<string>());
+                msg.pushKV("time", itm["time"].As<string>());
                 if (itm["parentid"].As<string>() != "") msg.pushKV("parentid", itm["parentid"].As<string>());
                 if (itm["answerid"].As<string>() != "") msg.pushKV("answerid", itm["answerid"].As<string>());
 
@@ -2761,6 +2768,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
                 msg.pushKV("txid", itm["otxid"].As<string>());
                 msg.pushKV("posttxid", itm["postid"].As<string>());
                 msg.pushKV("reason", "answer");
+                msg.pushKV("time", itm["time"].As<string>());
                 if (itm["parentid"].As<string>() != "") msg.pushKV("parentid", itm["parentid"].As<string>());
                 if (itm["answerid"].As<string>() != "") msg.pushKV("answerid", itm["answerid"].As<string>());
 
@@ -2789,6 +2797,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
                 msg.pushKV("txid", itm["otxid"].As<string>());
                 msg.pushKV("posttxid", itm["postid"].As<string>());
                 msg.pushKV("reason", "post");
+                msg.pushKV("time", itm["time"].As<string>());
                 if (itm["parentid"].As<string>() != "") msg.pushKV("parentid", itm["parentid"].As<string>());
                 if (itm["answerid"].As<string>() != "") msg.pushKV("answerid", itm["answerid"].As<string>());
 

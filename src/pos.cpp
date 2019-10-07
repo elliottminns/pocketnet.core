@@ -651,9 +651,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
     }
     
 	// Create transactions for all winners
-    totalAmount = 0;
     bool ret = false;
-
     ret = GenerateOuts(nCredit, results, totalAmount, vLotteryPost, OP_WINNER_POST) || ret;
     ret = GenerateOuts(nCredit, results, totalAmount, vLotteryComment, OP_WINNER_COMMENT) || ret;
 
