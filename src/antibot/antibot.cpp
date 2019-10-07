@@ -1347,7 +1347,7 @@ bool AntiBot::GetUserState(std::string _address, int64_t _time, UserStateItem& _
 bool AntiBot::AllowModifyReputation(std::string _score_address, int height) {
     // Ignore scores from users with rating < Antibot::Limit::threshold_reputation_score
     int64_t _min_user_reputation = GetActualLimit(Limit::threshold_reputation_score, height);
-    int _user_reputation = g_pocketdb->GetUserReputation(_score_address, height);
+    double _user_reputation = g_pocketdb->GetUserReputation(_score_address, height);
     if (_user_reputation < _min_user_reputation) return false;
     
     // All is OK

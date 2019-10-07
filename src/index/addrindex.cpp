@@ -257,8 +257,14 @@ bool AddrIndex::indexRating(const CTransactionRef& tx,
         _check_score_address = post_address;
     }
 
+    // Scores with small reputation and scores one to one
+    bool modify_by_user_reputation = g_antibot->AllowModifyReputationOverPost(_check_score_address, post_address, pindex->nHeight - 1, tx, false);
+
+    // Scores to old posts not modify reputation
+    bool modify_block_old_post = (tx->nTime - postItm["time"].As<int64_t>()) < GetActualLimit(Limit::scores_depth_modify_reputation, pindex->nHeight - 1);
+
     // USER & POST reputation
-    if (g_antibot->AllowModifyReputationOverPost(_check_score_address, post_address, pindex->nHeight - 1, tx, false)) {
+    if (modify_by_user_reputation && modify_block_old_post) {
 
         // User reputation
         if (userReputations.find(post_address) == userReputations.end()) userReputations.insert(std::make_pair(post_address, 0));
