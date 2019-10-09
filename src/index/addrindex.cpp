@@ -314,7 +314,7 @@ bool AddrIndex::indexCommentRating(const CTransactionRef& tx,
 
         // User reputation
         if (userReputations.find(comment_address) == userReputations.end()) userReputations.insert(std::make_pair(comment_address, 0));
-        userReputations[comment_address] += scoreVal / 10; // Reputation equals -0.1 or 0.1
+        userReputations[comment_address] += scoreVal / 10.0; // Reputation equals -0.1 or 0.1
 
         // Comment reputation        
         if (commentReputations.find(commentid) == commentReputations.end()) commentReputations.insert(std::make_pair(commentid, 0));

@@ -1389,6 +1389,7 @@ bool AntiBot::AllowModifyReputationOverPost(std::string _score_address, std::str
     return true;
 }
 
+// TODO (brangr): add check transactions in block
 bool AntiBot::AllowModifyReputationOverComment(std::string _score_address, std::string _comment_address, int height, const CTransactionRef& tx, bool lottery) {
     // Check user reputation
     if (!AllowModifyReputation(_score_address, height)) return false;
